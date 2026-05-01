@@ -46,11 +46,17 @@ app.use(
 );
 app.use(
   cors({
-    origin: process.env.ALLOWED_ORIGINS
-      ? process.env.ALLOWED_ORIGINS.split(',')
-          .map((o) => o.trim())
-          .filter((o) => o && o !== '*')
-      : [],
+    origin: (origin, callback) => {
+      const allowedOrigins = process.env.ALLOWED_ORIGINS
+        ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+        : [];
+
+      if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, false); // Return false instead of error to let CORS handle the response
+      }
+    },
     credentials: true,
   })
 );
