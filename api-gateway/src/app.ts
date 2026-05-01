@@ -32,7 +32,14 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// For non-proxy routes (like health check)
+// Health check (Needs body parsing)
+app.get('/health', express.json(), healthCheck('api-gateway'));
+
+// Proxy Routes - These MUST come BEFORE any global express.json()
+// to avoid breaking the proxy stream on Vercel/Serverless
+app.use('/api/v1', proxyRoutes);
+
+// Global Body Parsing for any other non-proxy routes (if any)
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -41,14 +48,6 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   logger.info(`${req.method} ${req.url}`);
   next();
 });
-
-// Health check
-app.get('/health', healthCheck('api-gateway'));
-
-// Proxy Routes - These should NOT use express.json() before they hit the proxy
-// to avoid issues with body parsing in http-proxy-middleware
-// (unless we use the complex fix, but for now we just place them carefully)
-app.use('/api/v1', proxyRoutes);
 
 // Error handling
 app.use(errorHandler);
