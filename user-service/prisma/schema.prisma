@@ -15,7 +15,7 @@ model UserProfile {
   username            String    @unique
   email               String    @unique
   name                String
-  nip                 String?   @unique // For teachers/staff
+  nip_nis             String?   @unique // For teachers (NIP) or students (NIS)
   phone               String?
   mobilePhone         String?
   address             String?
@@ -56,7 +56,7 @@ model UserProfile {
 
   @@index([userId])
   @@index([email])
-  @@index([nip])
+  @@index([nip_nis])
   @@map("user_profiles")
 }
 

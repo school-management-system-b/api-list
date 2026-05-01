@@ -13,7 +13,12 @@ import { healthCheck } from '@microservices/common/utils/health';
 import rateLimit from 'express-rate-limit';
 import { AUTH_CONFIG } from './config/constants';
 
+import { messageBroker } from './services/message-broker.service';
+
 dotenv.config();
+
+// Initialize Message Broker
+messageBroker.init();
 
 const app = express();
 const port = process.env.PORT || 3001;

@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import * as authController from '../controllers/auth.controller';
 import * as passwordController from '../controllers/password.controller';
-import { authenticate } from '../middlewares/auth.middleware';
+import * as userController from '../controllers/user.controller';
+import { authenticate, authorize } from '../middlewares/auth.middleware';
 
 const router = Router();
 
@@ -152,6 +153,42 @@ router.post('/reset-password', passwordController.resetPassword);
  *         description: Password changed successfully
  */
 router.post('/change-password', authenticate, passwordController.changePassword);
+
+/**
+ * @swagger
+ * /auth/users:
+ *   post:
+ *     summary: Create a new user (Admin Only)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [username, email, name, roleCode]
+ */
+router.post('/users', authenticate, authorize(['SUPERADMIN', 'ADMIN']), userController.createUser);
+
+/**
+ * @swagger
+ * /auth/users/bulk:
+ *   post:
+ *     summary: Bulk create users (Admin Only)
+ *     tags: [Auth]
+ */
+router.post('/users/bulk', authenticate, authorize(['SUPERADMIN', 'ADMIN']), userController.bulkCreateUsers);
+
+/**
+ * @swagger
+ * /auth/activate:
+ *   post:
+ *     summary: Activate account by changing temporary password
+ *     tags: [Auth]
+ */
+router.post('/activate', authenticate, userController.activateAccount);
 
 // Internal/System Triggers
 import { getUserForInternal } from '../controllers/internal.controller';

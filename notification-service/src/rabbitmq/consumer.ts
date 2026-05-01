@@ -11,23 +11,41 @@ export const initRabbitMQConsumer = async () => {
     console.log('RabbitMQ Consumer initialized for notifications');
     
     await RabbitMQ.consume('notifications', async (data) => {
-      logger.info('Received notification request from RabbitMQ:', data);
+      // ... existing code ...
+    });
+
+    // Listen for user creation events to send blast email
+    await RabbitMQ.consumeExchange('user.exchange', 'notification.user_created', 'user.created', async (data) => {
+      logger.info('Received user.created event for notification:', data.username);
       
       try {
-        // Create notification record
-        const notification = await prisma.notification.create({
+        const title = 'Selamat Datang di Sistem Sekolah';
+        const message = `Halo ${data.name},\n\nAkun Anda telah berhasil dibuat.\n\nBerikut adalah kredensial login Anda:\nUsername: ${data.username}\nPassword: ${data.tempPassword}\n\nSilakan login dan ganti password Anda segera di: https://sekolah-app.com/login\n\nTerima kasih.`;
+
+        await prisma.notification.create({
           data: {
-            ...data,
+            userId: data.id,
+            title,
+            message,
+            recipientName: data.name,
+            recipientEmail: data.email,
+            channels: ['EMAIL'],
             status: 'PENDING',
           },
         });
-        
-        // Deliver the notification
-        await deliveryService.deliver(notification.id);
-        logger.info(`Notification ${notification.id} processed from queue`);
+
+        // Trigger delivery immediately for blast email
+        // We'll let the existing delivery logic handle it via the DB if needed, 
+        // but here we can just call deliveryService directly or wait for another process.
+        // For simplicity, we create and then let a separate process or immediate call handle it.
+        const latest = await prisma.notification.findFirst({
+            where: { userId: data.id, title },
+            orderBy: { createdAt: 'desc' }
+        });
+        if (latest) await deliveryService.deliver(latest.id);
+
       } catch (error) {
-        logger.error('Error processing notification from queue:', error);
-        // In a real system, you might want to retry or send to a Dead Letter Queue
+        logger.error('Error handling user.created notification:', error);
       }
     });
   } catch (error) {

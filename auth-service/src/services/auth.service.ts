@@ -122,6 +122,7 @@ export class AuthService {
           name: updatedUser.name,
           email: updatedUser.email,
           roles,
+          mustChangePassword: updatedUser.mustChangePassword,
         },
         tokens: {
           accessToken,

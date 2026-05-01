@@ -28,6 +28,25 @@ export const registerSchema = Joi.object({
   name: Joi.string().min(3).max(100).required(),
 });
 
+export const createUserSchema = Joi.object({
+  username: Joi.string().alphanum().min(3).max(30).required(),
+  email: Joi.string().email().required(),
+  name: Joi.string().min(3).max(100).required(),
+  roleCode: Joi.string().required(),
+  nip_nis: Joi.string().optional(), // For internal linkage
+});
+
+export const bulkCreateUserSchema = Joi.array().items(createUserSchema).min(1).required();
+
+export const activateAccountSchema = Joi.object({
+  currentPassword: Joi.string().required(),
+  newPassword: Joi.string()
+    .min(8)
+    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
+    .required(),
+  confirmPassword: Joi.string().valid(Joi.ref('newPassword')).required(),
+});
+
 export const changePasswordSchema = Joi.object({
   currentPassword: Joi.string().required(),
   newPassword: Joi.string()

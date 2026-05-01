@@ -60,6 +60,29 @@ export class RabbitMQ {
     });
   }
 
+  static async consumeExchange(exchange: string, queue: string, routingKey: string, callback: (msg: any) => void): Promise<void> {
+    if (!this.channel) {
+      await this.connect();
+    }
+    
+    await this.channel.assertExchange(exchange, 'topic', { durable: true });
+    await this.channel.assertQueue(queue, { durable: true });
+    await this.channel.bindQueue(queue, exchange, routingKey);
+
+    this.channel.consume(queue, (msg: any) => {
+      if (msg !== null) {
+        try {
+          const content = JSON.parse(msg.content.toString());
+          callback(content);
+          this.channel.ack(msg);
+        } catch (error) {
+          console.error('Error processing exchange message', error);
+          this.channel.nack(msg, false, true);
+        }
+      }
+    });
+  }
+
   static async close(): Promise<void> {
     if (this.channel) await this.channel.close();
     if (this.connection) await this.connection.close();
