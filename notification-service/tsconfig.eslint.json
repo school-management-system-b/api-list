@@ -1,0 +1,16 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "allowJs": true
+    },
+    "include": [
+        "src/**/*",
+        "../common/**/*",
+        "jest.config.js",
+        "eslint.config.mjs"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist"
+    ]
+}

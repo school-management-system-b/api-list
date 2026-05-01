@@ -1,0 +1,116 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
+}
+
+model Category {
+  id                String        @id @default(uuid())
+  code              String        @unique
+  name              String
+  description       String?       @db.Text
+  type              CategoryType
+  
+  // Hierarchy
+  parentId          String?
+  level             Int           @default(0)  // 0 = root, 1 = child, etc.
+  
+  // For Violations
+  severity          ViolationSeverity?
+  defaultPoints     Int           @default(0)
+  minPoints         Int?
+  maxPoints         Int?
+  sanctionTemplate  String?       @db.Text
+  
+  // For Achievements
+  achievementType   AchievementType?
+  basePoints        Int?          // Base points for achievements
+  
+  // Icon & Display
+  icon              String?       // Icon name (lucide-react)
+  color             String?       // Hex color for UI
+  order             Int           @default(0)
+  
+  // Usage Statistics
+  usageCount        Int           @default(0)
+  lastUsedAt        DateTime?
+  
+  // Meta
+  isActive          Boolean       @default(true)
+  isSystem          Boolean       @default(false)  // System categories can't be deleted
+  createdBy         String
+  createdAt         DateTime      @default(now())
+  updatedBy         String?
+  updatedAt         DateTime      @updatedAt
+  deletedAt         DateTime?
+  deletedBy         String?
+  
+  // Relations
+  parent            Category?     @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children          Category[]    @relation("CategoryHierarchy")
+  
+  @@index([code])
+  @@index([type])
+  @@index([parentId])
+  @@index([severity])
+  @@map("categories")
+}
+
+model CategoryTemplate {
+  id            String        @id @default(uuid())
+  name          String
+  description   String?
+  type          CategoryType
+  categories    Json          // Array of category objects
+  isDefault     Boolean       @default(false)
+  createdBy     String
+  createdAt     DateTime      @default(now())
+  
+  @@map("category_templates")
+}
+
+model PointsConfiguration {
+  id                    String    @id @default(uuid())
+  configKey             String    @unique
+  configValue           Json
+  description           String?
+  
+  // For tracking changes
+  previousValue         Json?
+  changedBy             String?
+  changedAt             DateTime?
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@map("points_configurations")
+}
+
+enum CategoryType {
+  VIOLATION
+  ACHIEVEMENT
+}
+
+enum ViolationSeverity {
+  RINGAN
+  SEDANG
+  BERAT
+}
+
+enum AchievementType {
+  ACADEMIC
+  NON_ACADEMIC
+  SPORTS
+  ARTS
+  SCIENCE
+  TECHNOLOGY
+  LANGUAGE
+  RELIGIOUS
+  SOCIAL
+  OTHER
+}

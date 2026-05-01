@@ -1,0 +1,293 @@
+openapi: 3.0.0
+info:
+  title: Notification Service API
+  description: API documentation for the Notification & Messaging Service
+  version: 1.0.0
+servers:
+  - url: http://localhost:3007/api/v1/notifications
+    description: Local development server
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        type:
+          type: string
+        title:
+          type: string
+        message:
+          type: string
+        category:
+          type: string
+          enum: [GENERAL, VIOLATION, ACHIEVEMENT, ACADEMIC, SYSTEM]
+        recipientEmail:
+          type: string
+        recipientName:
+          type: string
+        data:
+          type: object
+        channels:
+          type: array
+          items:
+            type: string
+            enum: [INTERNAL, EMAIL, WA]
+        status:
+          type: string
+          enum: [PENDING, SENT, FAILED]
+        readAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+    TriggerNotification:
+      type: object
+      required:
+        - userId
+        - type
+        - title
+        - message
+      properties:
+        userId:
+          type: string
+          format: uuid
+        type:
+          type: string
+        title:
+          type: string
+        message:
+          type: string
+        category:
+          type: string
+          enum: [GENERAL, VIOLATION, ACHIEVEMENT, ACADEMIC, SYSTEM]
+          default: GENERAL
+        recipientEmail:
+          type: string
+          format: email
+        recipientName:
+          type: string
+        data:
+          type: object
+        channels:
+          type: array
+          items:
+            type: string
+            enum: [INTERNAL, EMAIL, WA]
+          default: [INTERNAL]
+    Template:
+      type: object
+      required:
+        - code
+        - name
+        - body
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        subject:
+          type: string
+        body:
+          type: string
+        channels:
+          type: array
+          items:
+            type: string
+            enum: [INTERNAL, EMAIL, WA]
+        isActive:
+          type: boolean
+          default: true
+paths:
+  /trigger:
+    post:
+      summary: Trigger a single notification
+      tags: [Internal]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TriggerNotification'
+      responses:
+        201:
+          description: Notification queued
+        400:
+          description: Invalid input
+  /trigger/batch:
+    post:
+      summary: Trigger multiple notifications
+      tags: [Internal]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notifications:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/TriggerNotification'
+      responses:
+        200:
+          description: Notifications queued
+  /trigger/urgent:
+    post:
+      summary: Trigger an urgent alert (immediate delivery)
+      tags: [Internal]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TriggerNotification'
+      responses:
+        201:
+          description: Urgent alert delivered
+  /my:
+    get:
+      summary: Get current user's notifications
+      tags: [User]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: header
+          name: x-paging-offset
+          schema:
+            type: integer
+            default: 0
+        - in: header
+          name: x-paging-limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        200:
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Notification'
+                      pagination:
+                        type: object
+                        properties:
+                          offset: { type: integer }
+                          limit: { type: integer }
+                          total: { type: integer }
+  /mark-read:
+    post:
+      summary: Mark notifications as read
+      tags: [User]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [notificationIds]
+              properties:
+                notificationIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+      responses:
+        200:
+          description: Notifications marked as read
+  /unread-count:
+    get:
+      summary: Get unread notification count
+      tags: [User]
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Unread count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  message: { type: string }
+                  data:
+                    type: object
+                    properties:
+                      count: { type: integer }
+  /templates:
+    get:
+      summary: List all notification templates
+      tags: [Templates]
+      responses:
+        200:
+          description: List of templates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Template'
+    post:
+      summary: Create a new template
+      tags: [Templates]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Template'
+      responses:
+        201:
+          description: Template created
+  /templates/{id}:
+    put:
+      summary: Update an existing template
+      tags: [Templates]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Template'
+      responses:
+        200:
+          description: Template updated

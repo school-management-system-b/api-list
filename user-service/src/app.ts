@@ -1,0 +1,71 @@
+import express, { Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
+import 'express-async-errors';
+import dotenv from 'dotenv';
+import swaggerUi from 'swagger-ui-express';
+import specs from './config/swagger.config';
+import logger from './config/logger';
+import { errorHandler } from '@microservices/common/middlewares/error.handler';
+import { healthCheck } from '@microservices/common/utils/health';
+
+dotenv.config();
+
+const app = express();
+const port = process.env.PORT || 3002;
+
+// Middleware
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(
+  cors({
+    origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+    credentials: true,
+  })
+);
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// Request logging
+app.use((req: Request, res: Response, next: NextFunction) => {
+  logger.info(`${req.method} ${req.url}`);
+  next();
+});
+
+// Routes
+import userRoutes from './routes/user.routes';
+
+app.use('/api/v1/users', userRoutes);
+try {
+  app.use(
+    '/api-docs',
+    swaggerUi.serve,
+    swaggerUi.setup(specs, {
+      customCssUrl: 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.0/swagger-ui.min.css',
+      customJs: [
+        'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.0/swagger-ui-bundle.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.0/swagger-ui-standalone-preset.js',
+      ],
+    })
+  );
+} catch (error) {
+  logger.error('Failed to setup Swagger UI:', error);
+}
+
+app.get('/', (req: Request, res: Response) => {
+  res.redirect('/api-docs');
+});
+
+app.get('/health', healthCheck('user-service'));
+
+// Error handling
+app.use(errorHandler);
+
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
+  app.listen(port, () => {
+    logger.info(`User Service listening on port ${port}`);
+  });
+}
+
+export default app;

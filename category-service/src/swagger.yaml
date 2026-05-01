@@ -1,0 +1,303 @@
+openapi: 3.0.0
+info:
+  title: Category Service API
+  description: API for managing categories, configurations, and statistics in the Student Points System.
+  version: 1.0.0
+
+servers:
+  - url: /api/v1/categories
+    description: Base path for Category Service
+
+components:
+  schemas:
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        type:
+          type: string
+          enum: [VIOLATION, ACHIEVEMENT]
+        parentId:
+          type: string
+          format: uuid
+          nullable: true
+        level:
+          type: integer
+        severity:
+          type: string
+          enum: [RINGAN, SEDANG, BERAT]
+          nullable: true
+        defaultPoints:
+          type: integer
+        minPoints:
+          type: integer
+          nullable: true
+        maxPoints:
+          type: integer
+          nullable: true
+        sanctionTemplate:
+          type: string
+          nullable: true
+        achievementType:
+          type: string
+          enum: [ACADEMIC, NON_ACADEMIC, SPORTS, ARTS, SCIENCE, TECHNOLOGY, LANGUAGE, RELIGIOUS, SOCIAL, OTHER]
+          nullable: true
+        basePoints:
+          type: integer
+          nullable: true
+        icon:
+          type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+        order:
+          type: integer
+        usageCount:
+          type: integer
+        lastUsedAt:
+          type: string
+          format: date-time
+          nullable: true
+        isActive:
+          type: boolean
+        isSystem:
+          type: boolean
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedBy:
+          type: string
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+
+    Pagination:
+      type: object
+      properties:
+        offset:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+paths:
+  /:
+    get:
+      summary: Get all categories
+      tags:
+        - Categories
+      parameters:
+        - name: x-paging-offset
+          in: header
+          schema:
+            type: integer
+          description: Pagination offset
+        - name: x-paging-limit
+          in: header
+          schema:
+            type: integer
+          description: Pagination limit
+        - name: x-paging-search
+          in: header
+          schema:
+            type: string
+          description: Search term for name or code
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [VIOLATION, ACHIEVEMENT]
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum: [RINGAN, SEDANG, BERAT]
+        - name: hierarchical
+          in: query
+          schema:
+            type: boolean
+          description: Whether to return a hierarchical structure
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    oneOf:
+                      - type: array
+                        items:
+                          $ref: '#/components/schemas/Category'
+                      - type: object
+                        properties:
+                          items:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Category'
+                          pagination:
+                            $ref: '#/components/schemas/Pagination'
+
+    post:
+      summary: Create a new category
+      tags:
+        - Categories
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - name
+                - type
+              properties:
+                code:
+                  type: string
+                name:
+                  type: string
+                description:
+                  type: string
+                type:
+                  type: string
+                  enum: [VIOLATION, ACHIEVEMENT]
+                parentId:
+                  type: string
+                  format: uuid
+                severity:
+                  type: string
+                  enum: [RINGAN, SEDANG, BERAT]
+                defaultPoints:
+                  type: integer
+                minPoints:
+                  type: integer
+                maxPoints:
+                  type: integer
+                sanctionTemplate:
+                  type: string
+                achievementType:
+                  type: string
+                  enum: [ACADEMIC, NON_ACADEMIC, SPORTS, ARTS, SCIENCE, TECHNOLOGY, LANGUAGE, RELIGIOUS, SOCIAL, OTHER]
+                basePoints:
+                  type: integer
+                icon:
+                  type: string
+                color:
+                  type: string
+                order:
+                  type: integer
+                isActive:
+                  type: boolean
+      responses:
+        '201':
+          description: Created
+        '400':
+          description: Bad Request
+
+  /{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: Get category by ID
+      tags:
+        - Categories
+      responses:
+        '200':
+          description: Success
+        '404':
+          description: Not Found
+
+    put:
+      summary: Update category
+      tags:
+        - Categories
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Success
+
+    delete:
+      summary: Delete category
+      tags:
+        - Categories
+      responses:
+        '200':
+          description: Success
+        '404':
+          description: Not Found
+
+  /config/points:
+    get:
+      summary: Get all points configurations
+      tags:
+        - Configurations
+      responses:
+        '200':
+          description: Success
+
+  /config/points/{key}:
+    parameters:
+      - name: key
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      summary: Update points configuration
+      tags:
+        - Configurations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                configValue:
+                  type: object
+                description:
+                  type: string
+      responses:
+        '200':
+          description: Success
+
+  /stats/summary:
+    get:
+      summary: Get category statistics summary
+      tags:
+        - Statistics
+      responses:
+        '200':
+          description: Success
