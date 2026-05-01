@@ -16,7 +16,7 @@ const options: swaggerJsdoc.Options = {
         description: 'Development server',
       },
       {
-        url: 'https://user-service-orpin.vercel.app', // Update with actual URL if known or dynamic
+        url: 'https://api-list-user-service.vercel.app',
         description: 'Production server',
       },
     ],
@@ -31,10 +31,8 @@ const options: swaggerJsdoc.Options = {
     },
   },
   apis: [
-    path.join(__dirname, '../routes/*.ts'),
-    path.join(__dirname, '../controllers/*.ts'),
-    path.join(process.cwd(), 'dist/routes/*.js'),
-    path.join(process.cwd(), 'dist/controllers/*.js'),
+    path.join(__dirname, '../routes/*.{ts,js}'),
+    path.join(__dirname, '../controllers/*.{ts,js}'),
   ],
 };
 
