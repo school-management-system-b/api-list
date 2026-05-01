@@ -1,0 +1,260 @@
+﻿# Development Docker Compose with hot-reload
+version: '3.8'
+
+services:
+  # api-gateway
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+      target: builder
+    container_name: api-gateway-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+    env_file:
+      - ./api-gateway/.env
+    volumes:
+      - ./api-gateway/src:/app/api-gateway/src
+      - ./api-gateway/dist:/app/api-gateway/dist
+      - ./common:/app/common
+    command: npm run dev
+    networks:
+      - microservices-network
+    depends_on:
+      - auth-service
+      - user-service
+      - student-service
+      - violation-service
+      - achievement-service
+      - category-service
+      - notification-service
+      - reporting-service
+      - counseling-service
+      - schedule-service
+
+  # auth-service
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+      target: builder
+    container_name: auth-service-dev
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+    env_file:
+      - ./auth-service/.env
+    volumes:
+      - ./auth-service/src:/app/auth-service/src
+      - ./auth-service/dist:/app/auth-service/dist
+      - ./common:/app/common
+    command: npm run dev
+    networks:
+      - microservices-network
+
+  # user-service
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+      target: builder
+    container_name: user-service-dev
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=development
+      - PORT=3002
+    env_file:
+      - ./user-service/.env
+    volumes:
+      - ./user-service/src:/app/user-service/src
+      - ./user-service/dist:/app/user-service/dist
+      - ./common:/app/common
+    command: npm run dev
+    networks:
+      - microservices-network
+
+  # student-service
+  student-service:
+    build:
+      context: .
+      dockerfile: student-service/Dockerfile
+      target: builder
+    container_name: student-service-dev
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=development
+      - PORT=3003
+    env_file:
+      - ./student-service/.env
+    volumes:
+      - ./student-service/src:/app/student-service/src
+      - ./student-service/dist:/app/student-service/dist
+      - ./common:/app/common
+    command: npm run dev
+    networks:
+      - microservices-network
+
+  # violation-service
+  violation-service:
+    build:
+      context: .
+      dockerfile: violation-service/Dockerfile
+      target: builder
+    container_name: violation-service-dev
+    ports:
+      - "3004:3004"
+    environment:
+      - NODE_ENV=development
+      - PORT=3004
+    env_file:
+      - ./violation-service/.env
+    volumes:
+      - ./violation-service/src:/app/violation-service/src
+      - ./violation-service/dist:/app/violation-service/dist
+      - ./common:/app/common
+    command: npm run dev
+    networks:
+      - microservices-network
+
+  # achievement-service
+  achievement-service:
+    build:
+      context: .
+      dockerfile: achievement-service/Dockerfile
+      target: builder
+    container_name: achievement-service-dev
+    ports:
+      - "3005:3005"
+    environment:
+      - NODE_ENV=development
+      - PORT=3005
+    env_file:
+      - ./achievement-service/.env
+    volumes:
+      - ./achievement-service/src:/app/achievement-service/src
+      - ./achievement-service/dist:/app/achievement-service/dist
+      - ./common:/app/common
+    command: npm run dev
+    networks:
+      - microservices-network
+
+  # category-service
+  category-service:
+    build:
+      context: .
+      dockerfile: category-service/Dockerfile
+      target: builder
+    container_name: category-service-dev
+    ports:
+      - "3006:3006"
+    environment:
+      - NODE_ENV=development
+      - PORT=3006
+    env_file:
+      - ./category-service/.env
+    volumes:
+      - ./category-service/src:/app/category-service/src
+      - ./category-service/dist:/app/category-service/dist
+      - ./common:/app/common
+    command: npm run dev
+    networks:
+      - microservices-network
+
+  # notification-service
+  notification-service:
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+      target: builder
+    container_name: notification-service-dev
+    ports:
+      - "3007:3007"
+    environment:
+      - NODE_ENV=development
+      - PORT=3007
+    env_file:
+      - ./notification-service/.env
+    volumes:
+      - ./notification-service/src:/app/notification-service/src
+      - ./notification-service/dist:/app/notification-service/dist
+      - ./common:/app/common
+    command: npm run dev
+    networks:
+      - microservices-network
+
+  # reporting-service
+  reporting-service:
+    build:
+      context: .
+      dockerfile: reporting-service/Dockerfile
+      target: builder
+    container_name: reporting-service-dev
+    ports:
+      - "3008:3008"
+    environment:
+      - NODE_ENV=development
+      - PORT=3008
+    env_file:
+      - ./reporting-service/.env
+    volumes:
+      - ./reporting-service/src:/app/reporting-service/src
+      - ./reporting-service/dist:/app/reporting-service/dist
+      - ./common:/app/common
+    command: npm run dev
+    networks:
+      - microservices-network
+
+  # counseling-service
+  counseling-service:
+    build:
+      context: .
+      dockerfile: counseling-service/Dockerfile
+      target: builder
+    container_name: counseling-service-dev
+    ports:
+      - "3009:3009"
+    environment:
+      - NODE_ENV=development
+      - PORT=3009
+    env_file:
+      - ./counseling-service/.env
+    volumes:
+      - ./counseling-service/src:/app/counseling-service/src
+      - ./counseling-service/dist:/app/counseling-service/dist
+      - ./common:/app/common
+    command: npm run dev
+    networks:
+      - microservices-network
+
+  # schedule-service
+  schedule-service:
+    build:
+      context: .
+      dockerfile: schedule-service/Dockerfile
+      target: builder
+    container_name: schedule-service-dev
+    ports:
+      - "3010:3010"
+    environment:
+      - NODE_ENV=development
+      - PORT=3010
+    env_file:
+      - ./schedule-service/.env
+    volumes:
+      - ./schedule-service/src:/app/schedule-service/src
+      - ./schedule-service/dist:/app/schedule-service/dist
+      - ./common:/app/common
+    command: npm run dev
+    networks:
+      - microservices-network
+
+networks:
+  microservices-network:
+    driver: bridge

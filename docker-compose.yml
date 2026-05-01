@@ -1,0 +1,177 @@
+version: '3.8'
+
+services:
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    container_name: api-gateway
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./api-gateway/.env
+    networks:
+      - microservices-network
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      student-service:
+        condition: service_healthy
+      violation-service:
+        condition: service_healthy
+      achievement-service:
+        condition: service_healthy
+      category-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+      reporting-service:
+        condition: service_healthy
+      counseling-service:
+        condition: service_healthy
+      schedule-service:
+        condition: service_healthy
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+    container_name: auth-service
+    ports:
+      - "3001:3001"
+    env_file:
+      - ./auth-service/.env
+    networks:
+      - microservices-network
+
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    container_name: user-service
+    ports:
+      - "3002:3002"
+    env_file:
+      - ./user-service/.env
+    networks:
+      - microservices-network
+
+  student-service:
+    build:
+      context: .
+      dockerfile: student-service/Dockerfile
+    container_name: student-service
+    ports:
+      - "3003:3003"
+    env_file:
+      - ./student-service/.env
+    networks:
+      - microservices-network
+
+  violation-service:
+    build:
+      context: .
+      dockerfile: violation-service/Dockerfile
+    container_name: violation-service
+    ports:
+      - "3004:3004"
+    env_file:
+      - ./violation-service/.env
+    networks:
+      - microservices-network
+
+  achievement-service:
+    build:
+      context: .
+      dockerfile: achievement-service/Dockerfile
+    container_name: achievement-service
+    ports:
+      - "3005:3005"
+    env_file:
+      - ./achievement-service/.env
+    networks:
+      - microservices-network
+
+  category-service:
+    build:
+      context: .
+      dockerfile: category-service/Dockerfile
+    container_name: category-service
+    ports:
+      - "3006:3006"
+    env_file:
+      - ./category-service/.env
+    networks:
+      - microservices-network
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+    container_name: notification-service
+    ports:
+      - "3007:3007"
+    env_file:
+      - ./notification-service/.env
+    networks:
+      - microservices-network
+
+  reporting-service:
+    build:
+      context: .
+      dockerfile: reporting-service/Dockerfile
+    container_name: reporting-service
+    ports:
+      - "3008:3008"
+    env_file:
+      - ./reporting-service/.env
+    networks:
+      - microservices-network
+
+  counseling-service:
+    build:
+      context: .
+      dockerfile: counseling-service/Dockerfile
+    container_name: counseling-service
+    ports:
+      - "3009:3009"
+    env_file:
+      - ./counseling-service/.env
+    networks:
+      - microservices-network
+
+  schedule-service:
+    build:
+      context: .
+      dockerfile: schedule-service/Dockerfile
+    container_name: schedule-service
+    ports:
+      - "3010:3010"
+    env_file:
+      - ./schedule-service/.env
+    networks:
+      - microservices-network
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI port
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  microservices-network:
+    driver: bridge
+

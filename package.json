@@ -1,0 +1,21 @@
+{
+  "name": "microservices-root",
+  "private": true,
+  "scripts": {
+    "dev:all": "concurrently -n \"GATEWAY,AUTH,USER,STUDENT,VIOLATION,ACHIEV,CAT,NOTIF,REPORT,COUNSEL,SCHED\" -c \"bgBlue,bgGreen,bgYellow,bgMagenta,bgCyan,bgWhite,bgRed,bgBlue,bgGreen,bgYellow,bgMagenta\" \"npm run dev -w api-gateway\" \"npm run dev -w auth-service\" \"npm run dev -w user-service\" \"npm run dev -w student-service\" \"npm run dev -w violation-service\" \"npm run dev -w achievement-service\" \"npm run dev -w category-service\" \"npm run dev -w notification-service\" \"npm run dev -w reporting-service\" \"npm run dev -w counseling-service\" \"npm run dev -w schedule-service\"",
+    "install:all": "npm install && npm run prisma:generate --workspaces --if-present",
+    "prisma:generate:all": "npm run prisma:generate --workspaces --if-present",
+    "prisma:migrate:all": "npm run prisma:deploy --workspaces --if-present"
+
+  },
+  "workspaces": [
+    "auth-service",
+    "common",
+    "api-gateway",
+    "*-service"
+  ],
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "prisma": "^7.8.0"
+  }
+}
