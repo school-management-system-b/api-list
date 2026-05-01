@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import prisma from '../config/prisma';
 
 export const findAll = async (offset: number, limit: number, search?: string) => {
-  const where: Prisma.UserProfileWhereInput = {
+  const where: Prisma.UserWhereInput = {
     deletedAt: null,
     ...(search && {
       OR: [
@@ -15,38 +15,38 @@ export const findAll = async (offset: number, limit: number, search?: string) =>
   };
 
   const [items, total] = await Promise.all([
-    prisma.userProfile.findMany({
+    prisma.user.findMany({
       where,
       skip: offset,
       take: limit,
       orderBy: { name: 'asc' },
     }),
-    prisma.userProfile.count({ where }),
+    prisma.user.count({ where }),
   ]);
 
   return { items, total };
 };
 
 export const findById = async (id: string) => {
-  return prisma.userProfile.findUnique({
-    where: { userId: id },
+  return prisma.user.findUnique({
+    where: { id },
   });
 };
 
-export const create = async (data: Prisma.UserProfileCreateInput) => {
-  return prisma.userProfile.create({ data });
+export const create = async (data: Prisma.UserCreateInput) => {
+  return prisma.user.create({ data });
 };
 
-export const update = async (id: string, data: Prisma.UserProfileUpdateInput) => {
-  return prisma.userProfile.update({
-    where: { userId: id },
+export const update = async (id: string, data: Prisma.UserUpdateInput) => {
+  return prisma.user.update({
+    where: { id },
     data,
   });
 };
 
 export const softDelete = async (id: string, deletedBy: string) => {
-  return prisma.userProfile.update({
-    where: { userId: id },
+  return prisma.user.update({
+    where: { id },
     data: {
       deletedAt: new Date(),
       isActive: false,
