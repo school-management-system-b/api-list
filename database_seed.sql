@@ -17,7 +17,8 @@ VALUES
   ('role-005', 'KESISWAAN', 'Kesiswaan', 'Koordinator kesiswaan', 70, true, true, NOW(), NOW()),
   ('role-006', 'KEPSEK', 'Kepala Sekolah', 'Pemantau semua laporan', 80, true, true, NOW(), NOW()),
   ('role-007', 'ORANG_TUA', 'Orang Tua', 'Akses monitoring anak', 10, true, true, NOW(), NOW()),
-  ('role-008', 'GURU_MAPEL', 'Guru Mata Pelajaran', 'Input absensi dan prestasi', 40, true, true, NOW(), NOW())
+  ('role-008', 'GURU_MAPEL', 'Guru Mata Pelajaran', 'Input absensi dan prestasi', 40, true, true, NOW(), NOW()),
+  ('role-009', 'SISWA', 'Siswa', 'Akses monitoring pribadi', 5, true, true, NOW(), NOW())
 ON CONFLICT (code) DO NOTHING;
 
 -- ==========================================
@@ -45,7 +46,8 @@ VALUES
   ('usr-wali',   'walikelas',  'wali@sekolah.com',   '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGDMVr5yUP1KUOYTa', 'Siti Wali Kelas',  true, true, false, 0, NOW(), NOW()),
   ('usr-bk',     'gurubk',     'bk@sekolah.com',     '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGDMVr5yUP1KUOYTa', 'Ahmad Guru BK',    true, true, false, 0, NOW(), NOW()),
   ('usr-guru',   'gurumapel',  'guru@sekolah.com',   '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGDMVr5yUP1KUOYTa', 'Dedi Guru Mapel',  true, true, false, 0, NOW(), NOW()),
-  ('usr-ortu',   'orangtua',   'ortu@sekolah.com',   '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGDMVr5yUP1KUOYTa', 'Hendra Orang Tua', true, true, false, 0, NOW(), NOW())
+  ('usr-ortu',   'orangtua',   'ortu@sekolah.com',   '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGDMVr5yUP1KUOYTa', 'Hendra Orang Tua', true, true, false, 0, NOW(), NOW()),
+  ('usr-siswa',  'siswa',      'siswa@sekolah.com',  '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGDMVr5yUP1KUOYTa', 'Agus Prayogo',     true, true, false, 0, NOW(), NOW())
 ON CONFLICT (username) DO NOTHING;
 
 -- ==========================================
@@ -57,7 +59,8 @@ VALUES
   ('ur-002', 'usr-wali',  'role-003', true, NOW(), NOW()),
   ('ur-003', 'usr-bk',    'role-004', true, NOW(), NOW()),
   ('ur-004', 'usr-guru',  'role-008', true, NOW(), NOW()),
-  ('ur-005', 'usr-ortu',  'role-007', true, NOW(), NOW())
+  ('ur-005', 'usr-ortu',  'role-007', true, NOW(), NOW()),
+  ('ur-006', 'usr-siswa', 'role-009', true, NOW(), NOW()) -- But role-009 doesn't exist? Wait, Siswa is role-009. I need to add Siswa to roles.
 ON CONFLICT ("userId", "roleId") DO NOTHING;
 
 -- ==========================================
@@ -69,7 +72,8 @@ VALUES
   ('prof-002', 'usr-wali',  'walikelas',  'wali@sekolah.com',  'Siti Wali Kelas',  '081234567891', true, 'SYSTEM', NOW(), NOW()),
   ('prof-003', 'usr-bk',    'gurubk',     'bk@sekolah.com',    'Ahmad Guru BK',    '081234567892', true, 'SYSTEM', NOW(), NOW()),
   ('prof-004', 'usr-guru',  'gurumapel',  'guru@sekolah.com',  'Dedi Guru Mapel',  '081234567893', true, 'SYSTEM', NOW(), NOW()),
-  ('prof-005', 'usr-ortu',  'orangtua',   'ortu@sekolah.com',  'Hendra Orang Tua', '081234567894', true, 'SYSTEM', NOW(), NOW())
+  ('prof-005', 'usr-ortu',  'orangtua',   'ortu@sekolah.com',  'Hendra Orang Tua', '081234567894', true, 'SYSTEM', NOW(), NOW()),
+  ('prof-006', 'usr-siswa', 'siswa',      'siswa@sekolah.com', 'Agus Prayogo',     '081234567895', true, 'SYSTEM', NOW(), NOW())
 ON CONFLICT ("userId") DO NOTHING;
 
 -- ==========================================
@@ -105,12 +109,12 @@ INSERT INTO "students" (
   gender, "birthPlace", "birthDate", religion, address, city, province,
   "academicYear", "entryYear", "entryDate", status,
   "totalPoints", "positivePoints", "negativePoints",
-  "isActive", "createdBy", "createdAt", "updatedAt"
+  "isActive", "createdBy", "createdAt", "updatedAt", "parentId"
 )
 VALUES
-  ('std-001', 'usr-ortu', '0011223344', '1001', 'Agus Prayogo',  'cls-001', 'X MIPA 1', '10', 'MALE',   'Jakarta',  '2008-05-10', 'ISLAM', 'Jl. Merdeka No. 1', 'Jakarta',  'DKI Jakarta', '2024/2025', '2024', '2024-07-15', 'ACTIVE', -5, 0,  5, true, 'SYSTEM', NOW(), NOW()),
-  ('std-002', NULL,        '0011223355', '1002', 'Budi Santoso',  'cls-001', 'X MIPA 1', '10', 'MALE',   'Bandung',  '2008-06-11', 'ISLAM', 'Jl. Asia Afrika No. 2', 'Bandung', 'Jawa Barat', '2024/2025', '2024', '2024-07-15', 'ACTIVE',  0, 0,  0, true, 'SYSTEM', NOW(), NOW()),
-  ('std-003', NULL,        '0011223366', '1003', 'Citra Kirana',  'cls-002', 'X IPS 1',  '10', 'FEMALE', 'Surabaya', '2008-07-12', 'ISLAM', 'Jl. Pemuda No. 3',   'Surabaya','Jawa Timur', '2024/2025', '2024', '2024-07-15', 'ACTIVE', 50, 50, 0, true, 'SYSTEM', NOW(), NOW())
+  ('std-001', 'usr-siswa', '0011223344', '1001', 'Agus Prayogo',  'cls-001', 'X MIPA 1', '10', 'MALE',   'Jakarta',  '2008-05-10', 'ISLAM', 'Jl. Merdeka No. 1', 'Jakarta',  'DKI Jakarta', '2024/2025', '2024', '2024-07-15', 'ACTIVE', -5, 0,  5, true, 'SYSTEM', NOW(), NOW(), 'usr-ortu'),
+  ('std-002', NULL,        '0011223355', '1002', 'Budi Santoso',  'cls-001', 'X MIPA 1', '10', 'MALE',   'Bandung',  '2008-06-11', 'ISLAM', 'Jl. Asia Afrika No. 2', 'Bandung', 'Jawa Barat', '2024/2025', '2024', '2024-07-15', 'ACTIVE',  0, 0,  0, true, 'SYSTEM', NOW(), NOW(), NULL),
+  ('std-003', NULL,        '0011223366', '1003', 'Citra Kirana',  'cls-002', 'X IPS 1',  '10', 'FEMALE', 'Surabaya', '2008-07-12', 'ISLAM', 'Jl. Pemuda No. 3',   'Surabaya','Jawa Timur', '2024/2025', '2024', '2024-07-15', 'ACTIVE', 50, 50, 0, true, 'SYSTEM', NOW(), NOW(), NULL)
 ON CONFLICT (nisn) DO NOTHING;
 
 -- ==========================================
@@ -279,3 +283,43 @@ ON CONFLICT (code) DO NOTHING;
 -- SELECT COUNT(*) AS achievements FROM "achievements";
 -- SELECT COUNT(*) AS subjects FROM "subjects";
 -- SELECT COUNT(*) AS notification_templates FROM "notification_templates";
+
+
+-- ==========================================
+-- 2.1 MODULE ACCESS (auth-service) → table: module_access
+-- ==========================================
+INSERT INTO "module_access" (id, "roleId", "moduleId", "canView", "canCreate", "canUpdate", "canDelete", "canViewAll", "canDownload", "canApprove", "createdAt", "updatedAt")
+VALUES
+  -- Superadmin (role-001) has all access to all modules
+  ('ma-101', 'role-001', 'mod-001', true, true, true, true, true, true, true, NOW(), NOW()),
+  ('ma-102', 'role-001', 'mod-002', true, true, true, true, true, true, true, NOW(), NOW()),
+  ('ma-103', 'role-001', 'mod-003', true, true, true, true, true, true, true, NOW(), NOW()),
+  ('ma-104', 'role-001', 'mod-004', true, true, true, true, true, true, true, NOW(), NOW()),
+  ('ma-105', 'role-001', 'mod-005', true, true, true, true, true, true, true, NOW(), NOW()),
+  ('ma-106', 'role-001', 'mod-006', true, true, true, true, true, true, true, NOW(), NOW()),
+  ('ma-107', 'role-001', 'mod-007', true, true, true, true, true, true, true, NOW(), NOW()),
+  ('ma-108', 'role-001', 'mod-008', true, true, true, true, true, true, true, NOW(), NOW()),
+
+  -- Wali Kelas (role-003)
+  ('ma-301', 'role-003', 'mod-001', true, false, false, false, false, false, false, NOW(), NOW()),
+  ('ma-303', 'role-003', 'mod-003', true, true, true, false, false, false, true, NOW(), NOW()),
+  ('ma-304', 'role-003', 'mod-004', true, true, true, false, false, false, true, NOW(), NOW()),
+  ('ma-307', 'role-003', 'mod-007', true, false, false, false, false, false, false, NOW(), NOW()),
+
+  -- Guru BK (role-004)
+  ('ma-401', 'role-004', 'mod-001', true, false, false, false, false, false, false, NOW(), NOW()),
+  ('ma-403', 'role-004', 'mod-003', true, true, true, false, true, false, true, NOW(), NOW()),
+  ('ma-406', 'role-004', 'mod-006', true, true, true, false, true, false, true, NOW(), NOW()),
+  
+  -- Orang Tua (role-007)
+  ('ma-701', 'role-007', 'mod-001', true, false, false, false, false, false, false, NOW(), NOW()),
+  ('ma-703', 'role-007', 'mod-003', true, false, false, false, false, false, false, NOW(), NOW()),
+  ('ma-704', 'role-007', 'mod-004', true, false, false, false, false, false, false, NOW(), NOW()),
+  ('ma-707', 'role-007', 'mod-007', true, false, false, false, false, false, false, NOW(), NOW()),
+
+  -- Siswa (role-009)
+  ('ma-901', 'role-009', 'mod-001', true, false, false, false, false, false, false, NOW(), NOW()),
+  ('ma-903', 'role-009', 'mod-003', true, false, false, false, false, false, false, NOW(), NOW()),
+  ('ma-904', 'role-009', 'mod-004', true, false, false, false, false, false, false, NOW(), NOW()),
+  ('ma-907', 'role-009', 'mod-007', true, false, false, false, false, false, false, NOW(), NOW())
+ON CONFLICT ("roleId", "moduleId") DO NOTHING;
