@@ -9,6 +9,7 @@ const router = Router();
 router.post('/trigger', internalController.triggerNotification);
 router.post('/trigger/batch', internalController.triggerBatchNotification);
 router.post('/trigger/urgent', internalController.triggerUrgentAlert);
+router.post('/welcome', internalController.sendWelcomeEmail);
 
 // User Notification Center
 router.get('/my', notificationController.getMyNotifications);

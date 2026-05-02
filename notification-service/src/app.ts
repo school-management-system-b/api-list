@@ -63,14 +63,6 @@ app.get('/health', healthCheck('notification-service'));
 // Error handling
 app.use(errorHandler);
 
-// Initialize RabbitMQ Consumer
-import { initRabbitMQConsumer } from './rabbitmq/consumer';
-if (process.env.NODE_ENV !== 'test') {
-  initRabbitMQConsumer().catch((err) => {
-    logger.error('Failed to start RabbitMQ consumer:', err);
-  });
-}
-
 if (process.env.NODE_ENV !== 'test') {
 
   app.listen(port, () => {

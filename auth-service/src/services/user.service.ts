@@ -1,7 +1,6 @@
 import prisma from '../config/prisma';
 import bcrypt from 'bcryptjs';
-import { v4 as uuidv4 } from 'uuid';
-import { messageBroker } from './message-broker.service';
+import axios from 'axios';
 import logger from '../config/logger';
 
 export class UserService {
@@ -45,16 +44,32 @@ export class UserService {
       return newUser;
     });
 
-    // 4. Publish Event for Notification and User Profile Creation
-    await messageBroker.publishMessage('user.exchange', 'user.created', {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      name: user.name,
-      role: roleCode,
-      nip_nis: nip_nis,
-      tempPassword, // Sent to notification service only
-    });
+    // 4. Direct HTTP calls to other services
+    try {
+      const userServiceUrl = process.env.USER_SERVICE_URL || 'http://localhost:3002';
+      const notificationServiceUrl = process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3007';
+
+      // Call User Service to create profile
+      await axios.post(`${userServiceUrl}/api/v1/users`, {
+        userId: user.id,
+        username: user.username,
+        email: user.email,
+        name: user.name,
+        nip_nis: nip_nis,
+      }).catch(err => logger.error('Failed to auto-create profile in User Service:', err.message));
+
+      // Call Notification Service to send welcome email
+      await axios.post(`${notificationServiceUrl}/api/v1/notifications/welcome`, {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        name: user.name,
+        tempPassword,
+      }).catch(err => logger.error('Failed to send welcome email via Notification Service:', err.message));
+
+    } catch (error) {
+      logger.error('Error during inter-service communication:', error.message);
+    }
 
     return {
       id: user.id,

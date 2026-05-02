@@ -10,14 +10,7 @@ import logger from './config/logger';
 import { errorHandler } from '@microservices/common/middlewares/error.handler';
 import { healthCheck } from '@microservices/common/utils/health';
 
-import { initRabbitMQConsumer } from './rabbitmq/consumer';
-
 dotenv.config();
-
-// Initialize RabbitMQ Consumer
-if (process.env.NODE_ENV !== 'test') {
-  initRabbitMQConsumer();
-}
 
 const app = express();
 const port = process.env.PORT || 3002;
