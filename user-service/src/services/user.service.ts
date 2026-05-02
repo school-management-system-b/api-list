@@ -9,7 +9,7 @@ export const findAll = async (offset: number, limit: number, search?: string) =>
         { name: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
         { username: { contains: search, mode: 'insensitive' } },
-        { nip: { contains: search, mode: 'insensitive' } },
+        { nip_nis: { contains: search, mode: 'insensitive' } },
       ],
     }),
   };

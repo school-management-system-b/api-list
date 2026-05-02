@@ -38,11 +38,11 @@ export const initRabbitMQConsumer = async () => {
         });
 
         logger.info(`✅ Successfully created profile for user ${data.username}`);
-      } catch (error) {
+      } catch (error: any) {
         logger.error('❌ Error creating user profile from event:', error.message);
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('❌ Failed to initialize User Service RabbitMQ consumer:', error);
     setTimeout(initRabbitMQConsumer, 5000);
   }

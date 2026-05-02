@@ -44,11 +44,11 @@ export const initRabbitMQConsumer = async () => {
         });
         if (latest) await deliveryService.deliver(latest.id);
 
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Error handling user.created notification:', error);
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Failed to initialize RabbitMQ consumer:', error);
     // Retry logic could be added here
     setTimeout(initRabbitMQConsumer, 5000);
