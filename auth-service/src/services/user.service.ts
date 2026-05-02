@@ -2,13 +2,14 @@ import prisma from '../config/prisma';
 import bcrypt from 'bcryptjs';
 import axios from 'axios';
 import logger from '../config/logger';
+import crypto from 'crypto';
 
 export class UserService {
   async createUser(data: any, createdBy: string) {
     const { username, email, name, roleCode, nip_nis } = data;
 
-    // 1. Generate temporary password
-    const tempPassword = Math.random().toString(36).slice(-8) + '1!';
+    // 1. Generate temporary password (Secure)
+    const tempPassword = crypto.randomBytes(4).toString('hex') + 'A1!';
     const hashedPassword = await bcrypt.hash(tempPassword, 12);
 
     // 2. Find Role
@@ -41,6 +42,16 @@ export class UserService {
         },
       });
 
+      // Insert Audit Log (using executeRaw to bypass Prisma schema if not updated yet, or just rely on manual insert later, but better to use raw query if schema isn't generated)
+      try {
+        await tx.$executeRaw`
+          INSERT INTO audit_logs (actor_id, actor_name, action, target_type, target_id, target_name)
+          VALUES (${createdBy}::uuid, 'System/Admin', 'CREATE_USER', 'user', ${newUser.id}::uuid, ${username})
+        `;
+      } catch (e: any) {
+        logger.warn('Could not insert audit log (maybe table not ready): ' + e.message);
+      }
+
       return newUser;
     });
 
@@ -48,24 +59,27 @@ export class UserService {
     try {
       const userServiceUrl = process.env.USER_SERVICE_URL || 'http://localhost:3002';
       const notificationServiceUrl = process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3007';
+      const internalSecret = process.env.INTERNAL_SECRET || 'change-this-to-a-strong-secret-in-production';
+
+      const headers = { 'x-internal-secret': internalSecret };
 
       // Call User Service to create profile
-      await axios.post(`${userServiceUrl}/api/v1/users`, {
+      await axios.post(`${userServiceUrl}/api/v1/internal/users`, {
         userId: user.id,
         username: user.username,
         email: user.email,
         name: user.name,
         nip_nis: nip_nis,
-      }).catch(err => logger.error('Failed to auto-create profile in User Service:', err.message));
+      }, { headers }).catch(err => logger.error('Failed to auto-create profile in User Service:', err.message));
 
       // Call Notification Service to send welcome email
-      await axios.post(`${notificationServiceUrl}/api/v1/notifications/welcome`, {
+      await axios.post(`${notificationServiceUrl}/api/v1/internal/notifications/welcome`, {
         id: user.id,
         username: user.username,
         email: user.email,
         name: user.name,
         tempPassword,
-      }).catch(err => logger.error('Failed to send welcome email via Notification Service:', err.message));
+      }, { headers }).catch(err => logger.error('Failed to send welcome email via Notification Service:', err.message));
 
     } catch (error: any) {
       logger.error('Error during inter-service communication:', error.message);

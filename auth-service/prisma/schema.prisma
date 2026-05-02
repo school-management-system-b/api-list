@@ -198,3 +198,14 @@ enum LoginStatus {
   FAILED_ACCOUNT_INACTIVE
   FAILED_EMAIL_NOT_VERIFIED
 }
+
+
+model BlacklistedToken {
+  id            String   @id @default(uuid())
+  token         String   @unique
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+
+  @@index([token])
+  @@map("blacklisted_tokens")
+}

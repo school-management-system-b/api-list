@@ -5,11 +5,7 @@ import * as templateController from '../controllers/template.controller';
 
 const router = Router();
 
-// Internal/System Triggers (Service-to-Service)
-router.post('/trigger', internalController.triggerNotification);
-router.post('/trigger/batch', internalController.triggerBatchNotification);
-router.post('/trigger/urgent', internalController.triggerUrgentAlert);
-router.post('/welcome', internalController.sendWelcomeEmail);
+// Internal routes moved to internal.routes.ts
 
 // User Notification Center
 router.get('/my', notificationController.getMyNotifications);

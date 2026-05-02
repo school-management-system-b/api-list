@@ -35,8 +35,10 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 // Routes
 import userRoutes from './routes/user.routes';
+import internalRoutes from './routes/internal.routes';
 
 app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/internal', internalRoutes);
 try {
   app.use(
     '/api-docs',

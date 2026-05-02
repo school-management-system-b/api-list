@@ -43,54 +43,67 @@ export const getAchievements = async (req: Request, res: Response) => {
   });
 };
 
+import axios from 'axios';
+
 export const createAchievement = async (req: Request, res: Response) => {
   const { error, value } = createAchievementSchema.validate(req.body);
   if (error) return sendError(res, 400, error.details[0].message);
 
-  // Mocking student and category info - usually would come from inter-service calls
-  const studentName = 'Ahmad Fauzi'; // Mock
-  const studentNisn = '0012345678'; // Mock
-  const studentClass = '10 IPA 1'; // Mock
-  const categoryName = 'Olimpiade Matematika'; // Mock
-  const categoryCode = 'OLIMPIADE_MATEMATIKA'; // Mock
-  const categoryType = 'ACADEMIC' as any; // Mock
-  const basePoints = 50; // Mock
+  try {
+    const studentServiceUrl = process.env.STUDENT_SERVICE_URL || 'http://localhost:3003';
+    const categoryServiceUrl = process.env.CATEGORY_SERVICE_URL || 'http://localhost:3006';
+    const internalSecret = process.env.INTERNAL_SECRET || 'change-this-to-a-strong-secret-in-production';
+    const headers = { 'x-internal-secret': internalSecret };
 
-  // Logic calculation placeholder
-  const points = basePoints; // Should use PointsCalculationService
+    // Fetch real data from other services
+    const [studentRes, categoryRes] = await Promise.all([
+      axios.get(`${studentServiceUrl}/api/v1/internal/students/${value.studentId}`, { headers }),
+      axios.get(`${categoryServiceUrl}/api/v1/internal/categories/${value.categoryId}`, { headers })
+    ]);
 
-  const achievement = await prisma.achievement.create({
-    data: {
-      ...value,
-      studentName,
-      studentNisn,
-      studentClass,
-      categoryName,
-      categoryCode,
-      categoryType,
-      basePoints,
-      points,
-      reportedBy: (req as any).user?.id || 'SYSTEM',
-      reportedByName: (req as any).user?.name || 'System User',
-      reporterRole: (req as any).user?.roles?.[0] || 'GURUMAPEL',
-      createdBy: (req as any).user?.id || 'SYSTEM',
-    },
-  });
+    const student = studentRes.data.data;
+    const category = categoryRes.data.data;
 
-  await prisma.achievementApprovalHistory.create({
-    data: {
-      achievementId: achievement.id,
-      action: 'SUBMIT',
-      fromStatus: 'PENDING',
-      toStatus: 'PENDING',
-      approverUserId: (req as any).user?.id || 'SYSTEM',
-      approverName: (req as any).user?.name || 'System User',
-      approverRole: (req as any).user?.roles?.[0] || 'GURUMAPEL',
-      notes: 'Achievement recorded and submitted for approval',
-    },
-  });
+    // Logic calculation placeholder
+    const basePoints = category.basePoints || 50;
+    const points = basePoints; // Should use PointsCalculationService depending on level/rank
 
-  return sendResponse(res, 201, true, 'Achievement created successfully', achievement);
+    const achievement = await prisma.achievement.create({
+      data: {
+        ...value,
+        studentName: student.name,
+        studentNisn: student.nisn,
+        studentClass: student.className,
+        categoryName: category.name,
+        categoryCode: category.code,
+        categoryType: category.achievementType || 'OTHER',
+        basePoints,
+        points,
+        reportedBy: (req as any).user?.id || 'SYSTEM',
+        reportedByName: (req as any).user?.name || 'System User',
+        reporterRole: (req as any).user?.roles?.[0] || 'GURUMAPEL',
+        createdBy: (req as any).user?.id || 'SYSTEM',
+      },
+    });
+
+    await prisma.achievementApprovalHistory.create({
+      data: {
+        achievementId: achievement.id,
+        action: 'SUBMIT',
+        fromStatus: 'PENDING',
+        toStatus: 'PENDING',
+        approverUserId: (req as any).user?.id || 'SYSTEM',
+        approverName: (req as any).user?.name || 'System User',
+        approverRole: (req as any).user?.roles?.[0] || 'GURUMAPEL',
+        notes: 'Achievement recorded and submitted for approval',
+      },
+    });
+
+    return sendResponse(res, 201, true, 'Achievement created successfully', achievement);
+  } catch (err: any) {
+    console.error('Error in createAchievement:', err.message);
+    return sendError(res, 500, 'Failed to record achievement due to internal service error');
+  }
 };
 
 export const getAchievementById = async (req: Request, res: Response) => {

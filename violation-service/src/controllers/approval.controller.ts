@@ -44,6 +44,8 @@ export const approveWaliKelas = async (req: Request, res: Response) => {
   return sendResponse(res, 200, true, 'Violation approved by Wali Kelas', updated);
 };
 
+import axios from 'axios';
+
 export const approveBK = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { error, value } = approveBKSchema.validate(req.body);
@@ -51,8 +53,8 @@ export const approveBK = async (req: Request, res: Response) => {
 
   const violation = await prisma.violation.findUnique({ where: { id } });
   if (!violation) return sendError(res, 404, 'Violation not found');
-  if (violation.status !== 'APPROVED_WALI' && violation.status !== 'PENDING') {
-    return sendError(res, 400, 'Violation status must be PENDING or APPROVED_WALI');
+  if (violation.status !== 'APPROVED_WALI') {
+    return sendError(res, 400, 'Violation must be approved by Wali Kelas first');
   }
 
   const updated = await prisma.violation.update({
@@ -82,8 +84,29 @@ export const approveBK = async (req: Request, res: Response) => {
     },
   });
 
-  // TODO: Trigger points sync to student-service
-  console.log(`Triggering point sync for student ${violation.studentId}`);
+  const studentServiceUrl = process.env.STUDENT_SERVICE_URL || 'http://localhost:3003';
+  const notificationServiceUrl = process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3007';
+  const internalSecret = process.env.INTERNAL_SECRET || 'change-this-to-a-strong-secret-in-production';
+  const headers = { 'x-internal-secret': internalSecret };
+
+  // Trigger points sync to student-service
+  await axios.post(`${studentServiceUrl}/api/v1/internal/students/${violation.studentId}/points`, {
+    pointsChange: -violation.points,
+    sourceType: 'VIOLATION',
+    sourceId: violation.id,
+    sourceDescription: violation.categoryName,
+    academicYear: violation.academicYear,
+    semester: violation.semester
+  }, { headers }).catch((e: any) => console.error('Failed to sync points', e.message));
+
+  // Trigger notification
+  await axios.post(`${notificationServiceUrl}/api/v1/internal/notifications`, {
+    userId: violation.studentId, // In real app, might want to lookup parent ID
+    type: 'VIOLATION_APPROVED_BK',
+    title: 'Pelanggaran Disetujui BK',
+    message: `Siswa ${violation.studentName} melakukan pelanggaran ${violation.categoryName}. Sanksi: ${value.sanction}.`,
+    data: { violationId: violation.id }
+  }, { headers }).catch((e: any) => console.error('Failed to send notification', e.message));
 
   return sendResponse(res, 200, true, 'Violation approved by BK (Final)', updated);
 };

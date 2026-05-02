@@ -12,7 +12,10 @@ import { errorHandler, healthCheck } from '@microservices/common';
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Security and Reliability
+// Trust proxy (Vercel / Load Balancer)
+app.set('trust proxy', 1);
+
+// Security
 app.use(helmet());
 app.use(
   cors({
@@ -22,39 +25,60 @@ app.use(
 );
 app.use(cookieParser());
 
-// Rate Limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+// ── Rate Limiters ──────────────────────────────────────────────
+// Strict limiter for auth endpoints (login, register)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
   standardHeaders: true,
   legacyHeaders: false,
-  message: 'Too many requests from this IP, please try again after 15 minutes',
+  message: { success: false, message: 'Too many auth attempts, please try again in 15 minutes' },
 });
-app.use(limiter);
 
-// Health check (Needs body parsing)
-app.get('/health', express.json(), healthCheck('api-gateway'));
+// Standard limiter for all other routes
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many requests, please try again later' },
+});
 
-// Proxy Routes - These MUST come BEFORE any global express.json()
-// to avoid breaking the proxy stream on Vercel/Serverless
-app.use('/api/v1', proxyRoutes);
+app.use(globalLimiter);
 
-// Global Body Parsing for any other non-proxy routes (if any)
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Request logging
+// ── Request Logging ────────────────────────────────────────────
+// Placed BEFORE proxy routes so all requests are logged
 app.use((req: Request, res: Response, next: NextFunction) => {
-  logger.info(`${req.method} ${req.url}`);
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    logger.info(`${req.method} ${req.originalUrl} → ${res.statusCode} [${duration}ms]`);
+  });
   next();
 });
+
+// ── Health Check ───────────────────────────────────────────────
+app.get('/health', express.json(), healthCheck('api-gateway'));
+
+// ── Apply strict rate limit for auth routes before proxying ───
+app.use('/api/v1/auth/login', authLimiter);
+app.use('/api/v1/auth/forgot-password', authLimiter);
+app.use('/api/v1/auth/reset-password', authLimiter);
+
+// ── Proxy Routes ───────────────────────────────────────────────
+// Must come BEFORE global body parsing (no buffering proxy streams)
+app.use('/api/v1', proxyRoutes);
+
+// Global body parsing for non-proxy routes
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Error handling
 app.use(errorHandler);
 
 if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   app.listen(port, () => {
-    logger.info(`API Gateway listening on port ${port}`);
+    logger.info(`🚀 API Gateway listening on port ${port}`);
   });
 }
 

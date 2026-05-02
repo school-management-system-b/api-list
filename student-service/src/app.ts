@@ -51,10 +51,12 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 import studentRoutes from './routes/student.routes';
 import classRoutes from './routes/class.routes';
 import academicYearRoutes from './routes/academic-year.routes';
+import internalRoutes from './routes/internal.routes';
 
 app.use('/api/v1/students', studentRoutes);
 app.use('/api/v1/classes', classRoutes);
 app.use('/api/v1/academic-years', academicYearRoutes);
+app.use('/api/v1/internal', internalRoutes);
 
 app.get('/health', healthCheck('student-service'));
 

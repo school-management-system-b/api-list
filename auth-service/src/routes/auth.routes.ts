@@ -191,7 +191,7 @@ router.post('/users/bulk', authenticate, authorize(['SUPERADMIN', 'ADMIN']), use
 router.post('/activate', authenticate, userController.activateAccount);
 
 // Internal/System Triggers
-import { getUserForInternal } from '../controllers/internal.controller';
+import { getUserForInternal, checkTokenBlacklist } from '../controllers/internal.controller';
 import { authorizeSession } from '../controllers/authorization.controller';
 import { internalAuth } from '../middlewares/internal.middleware';
 
@@ -212,5 +212,6 @@ import { internalAuth } from '../middlewares/internal.middleware';
 router.get('/authorize', authenticate, authorizeSession);
 
 router.get('/internal/user/:id', internalAuth, getUserForInternal);
+router.post('/internal/token/check', internalAuth, checkTokenBlacklist);
 
 export default router;

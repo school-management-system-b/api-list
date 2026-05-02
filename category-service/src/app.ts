@@ -62,7 +62,9 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 // Routes
 import categoryRoutes from './routes/category.routes';
+import internalRoutes from './routes/internal.routes';
 app.use('/api/v1/categories', categoryRoutes);
+app.use('/api/v1/internal', internalRoutes);
 
 app.get('/', (req: Request, res: Response) => {
   res.redirect('/api-docs');

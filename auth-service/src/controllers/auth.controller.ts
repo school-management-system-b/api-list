@@ -40,9 +40,15 @@ export const refreshToken = async (req: Request, res: Response) => {
 
 export const logout = async (req: Request, res: Response) => {
   const { refreshToken } = req.body;
+  let accessToken = req.headers.authorization;
+  if (accessToken && accessToken.startsWith('Bearer ')) {
+    accessToken = accessToken.split(' ')[1];
+  } else {
+    accessToken = undefined;
+  }
 
   try {
-    await authService.logout(refreshToken);
+    await authService.logout(refreshToken, accessToken);
     return sendResponse(res, 200, true, 'Logout successful');
   } catch (err: unknown) {
     const error = err as { status?: number; message?: string };

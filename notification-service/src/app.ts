@@ -52,7 +52,10 @@ const swaggerOptions = {
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, swaggerOptions));
 
 // Routes
+import internalRoutes from './routes/internal.routes';
+
 app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/internal/notifications', internalRoutes);
 
 app.get('/', (req: Request, res: Response) => {
   res.redirect('/api-docs');

@@ -234,17 +234,37 @@ export class AuthService {
   }
 
   /**
-   * Logout (Revoke Token)
+   * Logout (Revoke Token and Blacklist Access Token)
    */
-  async logout(refreshToken: string) {
+  async logout(refreshToken?: string, accessToken?: string) {
+    const operations = [];
+
     if (refreshToken) {
-      await prisma.refreshToken.updateMany({
-        where: { token: refreshToken },
-        data: {
-          isRevoked: true,
-          revokedAt: new Date(),
-        },
-      });
+      operations.push(
+        prisma.refreshToken.updateMany({
+          where: { token: refreshToken },
+          data: {
+            isRevoked: true,
+            revokedAt: new Date(),
+          },
+        })
+      );
+    }
+
+    if (accessToken) {
+      operations.push(
+        prisma.blacklistedToken.create({
+          data: {
+            token: accessToken,
+            // Assuming access token is valid for 1 hour, blacklist for 2 hours to be safe
+            expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000), 
+          },
+        })
+      );
+    }
+
+    if (operations.length > 0) {
+      await prisma.$transaction(operations);
     }
   }
 }
