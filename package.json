@@ -6,7 +6,6 @@
     "install:all": "npm install && npm run prisma:generate --workspaces --if-present",
     "prisma:generate:all": "npm run prisma:generate --workspaces --if-present",
     "prisma:migrate:all": "npm run prisma:deploy --workspaces --if-present"
-
   },
   "workspaces": [
     "auth-service",
@@ -17,5 +16,8 @@
   "devDependencies": {
     "concurrently": "^8.2.2",
     "prisma": "^7.8.0"
+  },
+  "dependencies": {
+    "pg": "^8.20.0"
   }
 }

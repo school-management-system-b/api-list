@@ -11,7 +11,7 @@ datasource db {
 
 model Student {
   id                String        @id @default(uuid())
-  userId            String        @unique // Reference to Auth Service
+  userId            String?       @unique // Reference to Auth Service
   nisn              String        @unique
   nis               String?       @unique
   name              String
