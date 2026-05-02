@@ -67,7 +67,7 @@ export class UserService {
         tempPassword,
       }).catch(err => logger.error('Failed to send welcome email via Notification Service:', err.message));
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error during inter-service communication:', error.message);
     }
 
@@ -84,7 +84,7 @@ export class UserService {
       try {
         const result = await this.createUser(userData, createdBy);
         results.push({ success: true, ...result });
-      } catch (error) {
+      } catch (error: any) {
         results.push({ success: false, username: userData.username, message: error.message });
       }
     }

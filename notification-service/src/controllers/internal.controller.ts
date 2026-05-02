@@ -65,6 +65,8 @@ export const sendWelcomeEmail = async (req: Request, res: Response) => {
   const notification = await prisma.notification.create({
     data: {
       userId: id,
+      type: 'WELCOME_EMAIL',
+      category: 'SYSTEM',
       title,
       message,
       recipientName: name,
