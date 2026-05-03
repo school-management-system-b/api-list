@@ -14,7 +14,7 @@ class DeliveryService {
       secure: process.env.SMTP_SECURE === 'true',
       auth: {
         user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASSWORD,
+        pass: process.env.SMTP_PASS,
       },
     });
   }
@@ -99,7 +99,7 @@ class DeliveryService {
     }
 
     await this.transporter.sendMail({
-      from: process.env.EMAIL_FROM || '"School System" <noreply@school.com>',
+      from: process.env.FROM_EMAIL || '"School System" <noreply@school.com>',
       to: notification.recipientEmail,
       subject: notification.title,
       text: notification.message,
