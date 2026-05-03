@@ -57,6 +57,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
   req.user = {
     id: user.id,
     username: user.username,
+    name: user.name,
     email: user.email,
     roles: user.userRoles.map((ur) => ur.role.code),
   };

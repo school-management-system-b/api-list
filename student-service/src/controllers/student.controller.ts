@@ -87,6 +87,8 @@ export const createStudent = async (req: Request, res: Response) => {
       className: classInfo.name,
       classLevel: classInfo.level,
       classMajor: classInfo.major,
+      waliKelasId: classInfo.waliKelasId,
+      waliKelasName: classInfo.waliKelasName,
       createdBy: (req as any).user?.id || 'SYSTEM',
     },
   });
@@ -122,6 +124,8 @@ export const updateStudent = async (req: Request, res: Response) => {
     value.className = newClassInfo.name;
     value.classLevel = newClassInfo.level;
     value.classMajor = newClassInfo.major;
+    value.waliKelasId = newClassInfo.waliKelasId;
+    value.waliKelasName = newClassInfo.waliKelasName;
 
     await prisma.$transaction([
       prisma.class.update({

@@ -94,6 +94,7 @@ export class AuthService {
       const payload = {
         id: updatedUser.id,
         username: updatedUser.username,
+        name: updatedUser.name,
         roles,
         sid: storedToken.id, // ID dari tabel refresh_tokens sebagai session ID
         isAuthorized: false,
@@ -193,7 +194,7 @@ export class AuthService {
 
     const { user } = storedToken;
     const roles = user.userRoles.map((ur) => ur.role.code);
-    const payload = { id: user.id, username: user.username, roles, isAuthorized: false };
+    const payload = { id: user.id, username: user.username, name: user.name, roles, isAuthorized: false };
 
     const newRefreshToken = generateRefreshToken(payload);
 

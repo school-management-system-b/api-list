@@ -89,24 +89,37 @@ export const approveBK = async (req: Request, res: Response) => {
   const internalSecret = process.env.INTERNAL_SECRET || 'change-this-to-a-strong-secret-in-production';
   const headers = { 'x-internal-secret': internalSecret };
 
-  // Trigger points sync to student-service
+  // Sync points to student-service
   await axios.post(`${studentServiceUrl}/api/v1/internal/students/${violation.studentId}/points`, {
     pointsChange: -violation.points,
     sourceType: 'VIOLATION',
     sourceId: violation.id,
     sourceDescription: violation.categoryName,
     academicYear: violation.academicYear,
-    semester: violation.semester
+    semester: violation.semester,
+    recordedBy: (req as any).user.id,
   }, { headers }).catch((e: any) => console.error('Failed to sync points', e.message));
 
-  // Trigger notification
-  await axios.post(`${notificationServiceUrl}/api/v1/internal/notifications`, {
-    userId: violation.studentId, // In real app, might want to lookup parent ID
-    type: 'VIOLATION_APPROVED_BK',
-    title: 'Pelanggaran Disetujui BK',
-    message: `Siswa ${violation.studentName} melakukan pelanggaran ${violation.categoryName}. Sanksi: ${value.sanction}.`,
-    data: { violationId: violation.id }
-  }, { headers }).catch((e: any) => console.error('Failed to send notification', e.message));
+  // Get student info to find parentId
+  const studentRes = await axios.get(`${studentServiceUrl}/api/v1/internal/students/${violation.studentId}`, { headers })
+    .catch(() => null);
+  const parentId = studentRes?.data?.data?.parentId;
+
+  // Trigger notification to Parent (and Student)
+  const recipients = [violation.studentId];
+  if (parentId) recipients.push(parentId);
+
+  for (const recipientId of recipients) {
+    await axios.post(`${notificationServiceUrl}/api/v1/internal/notifications`, {
+      userId: recipientId,
+      type: 'VIOLATION_APPROVED_BK',
+      title: 'Pelanggaran Disetujui BK',
+      message: `Siswa ${violation.studentName} melakukan pelanggaran ${violation.categoryName}. Sanksi: ${value.sanction || 'Belum ada'}.`,
+      data: { violationId: violation.id },
+      category: 'VIOLATION',
+      channels: ['IN_APP', 'EMAIL']
+    }, { headers }).catch((e: any) => console.error(`Failed to send notification to ${recipientId}`, e.message));
+  }
 
   return sendResponse(res, 200, true, 'Violation approved by BK (Final)', updated);
 };

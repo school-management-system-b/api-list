@@ -1,12 +1,12 @@
 import Joi from 'joi';
 
 export const createStudentSchema = Joi.object({
-  userId: Joi.string().uuid().required(),
+  userId: Joi.string().required(),
   nisn: Joi.string().length(10).pattern(/^\d+$/).required(),
   nis: Joi.string().max(20).optional(),
   name: Joi.string().min(3).max(100).required(),
   nickname: Joi.string().max(50).optional(),
-  classId: Joi.string().uuid().required(),
+  classId: Joi.string().required(),
   gender: Joi.string().valid('MALE', 'FEMALE').required(),
   birthPlace: Joi.string().max(100).required(),
   birthDate: Joi.date().max('now').required(),
@@ -21,8 +21,8 @@ export const createStudentSchema = Joi.object({
     .pattern(/^08\d{8,11}$/)
     .optional(),
   email: Joi.string().email().optional(),
-  parentId: Joi.string().uuid().optional(),
-  waliKelasId: Joi.string().uuid().optional(),
+  parentId: Joi.string().optional(),
+  waliKelasId: Joi.string().optional(),
   academicYear: Joi.string()
     .pattern(/^\d{4}\/\d{4}$/)
     .required(),
@@ -35,7 +35,7 @@ export const createStudentSchema = Joi.object({
 export const updateStudentSchema = Joi.object({
   name: Joi.string().min(3).max(100).optional(),
   nickname: Joi.string().max(50).optional(),
-  classId: Joi.string().uuid().optional(),
+  classId: Joi.string().optional(),
   phone: Joi.string()
     .pattern(/^08\d{8,11}$/)
     .optional(),
@@ -52,7 +52,7 @@ export const createClassSchema = Joi.object({
   name: Joi.string().min(3).max(100).required(),
   level: Joi.string().valid('10', '11', '12').required(),
   major: Joi.string().max(50).optional(),
-  waliKelasId: Joi.string().uuid().optional(),
+  waliKelasId: Joi.string().optional(),
   capacity: Joi.number().integer().min(1).max(50).default(36),
   academicYear: Joi.string()
     .pattern(/^\d{4}\/\d{4}$/)

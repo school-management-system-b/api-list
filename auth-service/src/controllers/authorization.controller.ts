@@ -57,6 +57,7 @@ export const authorizeSession = async (req: Request, res: Response) => {
   const payload = {
     id: user.id,
     username: user.username,
+    name: user.name,
     roles: user.roles,
     isAuthorized: true,
   };

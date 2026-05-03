@@ -1,8 +1,8 @@
 import Joi from 'joi';
 
 export const createViolationSchema = Joi.object({
-  studentId: Joi.string().uuid().required(),
-  categoryId: Joi.string().uuid().required(),
+  studentId: Joi.string().required(),
+  categoryId: Joi.string().required(),
   description: Joi.string().min(10).max(1000).required(),
   location: Joi.string().max(200).optional(),
   violationDate: Joi.date().max('now').required(),

@@ -51,6 +51,9 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
+import { authenticate } from './middlewares/auth.middleware';
+app.use(authenticate);
+
 // Routes
 import violationRoutes from './routes/violation.routes';
 app.use('/api/v1/violations', violationRoutes);
