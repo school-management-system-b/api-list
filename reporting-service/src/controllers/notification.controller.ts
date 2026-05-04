@@ -38,13 +38,23 @@ export const markAsRead = async (req: Request, res: Response) => {
   const { notificationIds } = req.body;
   const userId = (req as AuthenticatedRequest).user?.id;
 
-  await prisma.notification.updateMany({
-    where: {
-      id: { in: notificationIds },
-      userId,
-    },
-    data: { readAt: new Date() },
-  });
+
+  if (notificationIds && Array.isArray(notificationIds) && notificationIds.length > 0) {
+    await prisma.notification.updateMany({
+      where: {
+        id: { in: notificationIds },
+        userId,
+      },
+      data: { readAt: new Date() },
+    });
+  } else {
+    // Mark ALL as read if no IDs provided
+    await prisma.notification.updateMany({
+      where: { userId, readAt: null },
+      data: { readAt: new Date() },
+    });
+  }
+
 
   return sendResponse(res, 200, true, 'Notifications marked as read');
 };
