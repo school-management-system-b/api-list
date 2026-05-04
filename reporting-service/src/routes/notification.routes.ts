@@ -12,6 +12,8 @@ const router = Router();
 router.get('/my', authenticate, notificationController.getMyNotifications);
 router.post('/mark-read', authenticate, notificationController.markAsRead);
 router.get('/unread-count', authenticate, notificationController.getUnreadCount);
+router.post('/summon', authenticate, roleCheck(['SUPERADMIN', 'BK']), notificationController.sendSummon);
+
 
 // Templates
 router.get('/templates', authenticate, templateController.getTemplates);

@@ -12,5 +12,7 @@ router.post('/', internalController.triggerNotification);
 router.post('/batch', internalController.triggerBatchNotification);
 router.post('/urgent', internalController.triggerUrgentAlert);
 router.post('/welcome', internalController.sendWelcomeEmail);
+router.post('/summon', internalController.sendParentSummons);
 
 export default router;
+

@@ -48,7 +48,6 @@ export const markAsRead = async (req: Request, res: Response) => {
 
   return sendResponse(res, 200, true, 'Notifications marked as read');
 };
-
 export const getUnreadCount = async (req: Request, res: Response) => {
   const userId = (req as AuthenticatedRequest).user?.id;
   const count = await prisma.notification.count({
@@ -56,3 +55,33 @@ export const getUnreadCount = async (req: Request, res: Response) => {
   });
   return sendResponse(res, 200, true, 'Unread count retrieved', { count });
 };
+
+
+export const sendSummon = async (req: Request, res: Response) => {
+  const { studentId, parentId, studentName, parentName, parentEmail, points, violations } = req.body;
+  
+  // This is a proxy to the internal logic but with role checks (applied in routes)
+  const deliveryService = require('../services/delivery.service').default;
+
+  const title = `SURAT PANGGILAN ORANG TUA - ${studentName}`;
+  const message = `Yth. Bapak/Ibu ${parentName},\n\nMelalui surat ini, kami mengharapkan kehadiran Bapak/Ibu di sekolah untuk mendiskusikan perkembangan kedisiplinan putra/putri Anda, ${studentName}.\n\nSaat ini, total poin pelanggaran ${studentName} telah mencapai ${points} poin.\n\nDetail pelanggaran terakhir:\n${violations}\n\nMohon hadir pada hari kerja di ruang BK. Atas perhatiannya kami ucapkan terima kasih.`;
+
+  const notification = await prisma.notification.create({
+    data: {
+      userId: parentId || studentId,
+      type: 'PARENT_SUMMONS',
+      category: 'VIOLATION',
+      title,
+      message,
+      recipientName: parentName,
+      recipientEmail: parentEmail,
+      channels: ['EMAIL', 'INTERNAL'],
+      status: 'PENDING',
+    },
+  });
+
+  await deliveryService.deliver(notification.id);
+
+  return sendResponse(res, 200, true, 'Surat panggilan berhasil dikirim');
+};
+

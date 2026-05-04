@@ -81,3 +81,33 @@ export const sendWelcomeEmail = async (req: Request, res: Response) => {
 
   return sendResponse(res, 200, true, 'Welcome email sent successfully');
 };
+
+export const sendParentSummons = async (req: Request, res: Response) => {
+  const { studentId, parentId, studentName, parentName, parentEmail, points, violations } = req.body;
+
+  if (!parentEmail) {
+    return sendError(res, 400, 'parentEmail is required');
+  }
+
+  const title = `SURAT PANGGILAN ORANG TUA - ${studentName}`;
+  const message = `Yth. Bapak/Ibu ${parentName},\n\nMelalui surat ini, kami mengharapkan kehadiran Bapak/Ibu di sekolah untuk mendiskusikan perkembangan kedisiplinan putra/putri Anda, ${studentName}.\n\nSaat ini, total poin pelanggaran ${studentName} telah mencapai ${points} poin.\n\nDetail pelanggaran terakhir:\n${violations}\n\nMohon hadir pada hari kerja di ruang BK. Atas perhatiannya kami ucapkan terima kasih.`;
+
+  const notification = await prisma.notification.create({
+    data: {
+      userId: parentId || studentId,
+      type: 'PARENT_SUMMONS',
+      category: 'VIOLATION',
+      title,
+      message,
+      recipientName: parentName,
+      recipientEmail: parentEmail,
+      channels: ['EMAIL', 'INTERNAL'],
+      status: 'PENDING',
+    },
+  });
+
+  await deliveryService.deliver(notification.id);
+
+  return sendResponse(res, 200, true, 'Parent summons email sent successfully');
+};
+
