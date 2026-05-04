@@ -37,6 +37,12 @@ function createServiceProxy(servicePath: string, target: string, requireAuth: bo
   const proxy = createProxyMiddleware({
     target,
     changeOrigin: true,
+    pathRewrite: (path) => {
+      // Ensure the downstream service receives the full path including /api/v1 prefix
+      const prefix = `/api/v1${servicePath}`;
+      if (path.startsWith(prefix)) return path;
+      return `${prefix}${path}`;
+    },
     onProxyReq: (proxyReq: any, req: Request, res: Response) => {
       // Forward user context injected by auth middleware
       if (req.headers['x-user-id'])       proxyReq.setHeader('x-user-id',       req.headers['x-user-id'] as string);
