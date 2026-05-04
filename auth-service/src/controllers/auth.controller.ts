@@ -22,12 +22,13 @@ export const login = async (req: Request, res: Response) => {
 };
 
 export const refreshToken = async (req: Request, res: Response) => {
-  // Ambil dari x-refresh-token ATAU dari Authorization header (Bearer)
-  let token = req.headers['x-refresh-token'] as string;
+  // Check body, x-refresh-token header, or Authorization header
+  let token = req.body.refreshToken || (req.headers['x-refresh-token'] as string);
 
   if (!token && req.headers.authorization) {
     token = req.headers.authorization.split(' ')[1];
   }
+
 
   try {
     const result = await authService.refreshAuth(token);
