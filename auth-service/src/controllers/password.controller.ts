@@ -9,7 +9,7 @@ import {
 } from '../services/password.service';
 import crypto from 'crypto';
 import logger from '../config/logger';
-import { RabbitMQ } from '@microservices/common';
+import axios from 'axios';
 
 export const forgotPassword = async (req: Request, res: Response) => {
   const { email } = req.body;
@@ -37,20 +37,26 @@ export const forgotPassword = async (req: Request, res: Response) => {
     },
   });
 
-  // Send email with token via notification-service (using RabbitMQ)
+  // Send email with token via reporting-service (using HTTP call)
   try {
-    await RabbitMQ.publish('notifications', {
+    const REPORTING_SERVICE_URL = process.env.REPORTING_SERVICE_URL || 'http://localhost:3008';
+    const INTERNAL_SECRET = process.env.INTERNAL_SECRET;
+    const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+    
+    await axios.post(`${REPORTING_SERVICE_URL}/api/v1/internal/notifications`, {
       userId: user.id,
       type: 'PASSWORD_RESET',
       title: 'Permintaan Reset Password',
-      message: `Halo ${user.name}, gunakan token berikut untuk mereset password Anda: ${token}. Token ini berlaku selama 60 menit.`,
+      message: `Halo ${user.name},\n\nGunakan token berikut untuk mereset password Anda: ${token}.\nAtau klik link berikut: ${FRONTEND_URL}/reset-password?token=${token}\n\nToken ini berlaku selama 60 menit.`,
       category: 'SYSTEM',
       channels: ['EMAIL'],
+    }, {
+      headers: { 'x-internal-secret': INTERNAL_SECRET }
     });
-    logger.info(`Message published to RabbitMQ for password reset email: ${user.email}`);
+    
+    logger.info(`Notification request sent to reporting service for password reset: ${user.email}`);
   } catch (error) {
-    logger.error(`Failed to publish message to RabbitMQ: ${error}`);
-    // Fallback or just log it - message is now queued or lost but won't block the response
+    logger.error(`Failed to trigger password reset notification: ${error}`);
   }
 
   return sendResponse(res, 200, true, 'Password reset link sent to email');
