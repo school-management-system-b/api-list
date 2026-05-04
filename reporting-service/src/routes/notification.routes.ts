@@ -1,7 +1,6 @@
 import { Router } from 'express';
-import * as internalController from '../controllers/internal.controller';
 import * as notificationController from '../controllers/notification.controller';
-import * as templateController from '../controllers/template.controller';
+import * as templateController from '../controllers/notification-template.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { roleCheck } from '@microservices/common/middlewares/auth.check';
 

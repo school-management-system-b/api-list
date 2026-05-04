@@ -8,7 +8,7 @@ const axios = require('axios');
  */
 
 // Configuration
-const BASE_URL = 'http://localhost:3007/api/v1';
+const BASE_URL = 'http://localhost:3008/api/v1';
 const AUTH_URL = 'http://localhost:3001/api/v1/auth';
 const INTERNAL_SECRET = 'change-this-to-a-strong-secret-in-production'; // Sesuai .env
 

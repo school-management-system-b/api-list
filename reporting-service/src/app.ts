@@ -41,6 +41,8 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 // Routes
 import reportingRoutes from './routes/reporting.routes';
+import notificationRoutes from './routes/notification.routes';
+import notificationInternalRoutes from './routes/notification-internal.routes';
 
 const swaggerDocument = YAML.load(path.join(__dirname, './docs/swagger.yaml'));
 const swaggerOptions = {
@@ -59,6 +61,8 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 app.use('/api/v1/reporting', reportingRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/internal/notifications', notificationInternalRoutes);
 
 app.get('/health', healthCheck('reporting-service'));
 

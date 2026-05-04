@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import * as internalController from '../controllers/internal.controller';
+import * as internalController from '../controllers/notification-internal.controller';
 import { internalAuth } from '@microservices/common/middlewares/internal.auth';
 
 const router = Router();
