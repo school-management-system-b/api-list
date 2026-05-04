@@ -448,7 +448,38 @@ export const bulkCreateStudents = async (req: Request, res: Response) => {
     }
   }
 
-  return sendResponse(res, 201, true, 'Bulk import completed', results);
+  return sendResponse(res, 200, true, 'Bulk import completed', { results });
 };
 
+export const getConsolidatedMyChild = async (req: Request, res: Response) => {
+  const userId = (req as any).user?.id;
+  if (!userId) return sendError(res, 401, 'Unauthorized');
 
+  // 1. Find the parent student link (assuming parent's userId is used)
+  const student = await prisma.student.findFirst({
+    where: { parentId: userId },
+    include: {
+      pointsHistory: {
+        orderBy: { recordedAt: 'desc' },
+        take: 10
+      }
+    }
+  });
+
+  if (!student) {
+    return sendError(res, 404, 'Data anak tidak ditemukan');
+  }
+
+  return sendResponse(res, 200, true, 'Data anak berhasil diambil', {
+    student: {
+      id: student.id,
+      name: student.name,
+      nis: student.nis,
+      className: student.className,
+      totalPoints: student.totalPoints,
+      negativePoints: student.negativePoints,
+      positivePoints: student.positivePoints,
+    },
+    pointsHistory: student.pointsHistory
+  });
+};
