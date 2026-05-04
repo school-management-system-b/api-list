@@ -26,7 +26,9 @@ export const createUserSchema = Joi.object({
 
 export const updateUserSchema = Joi.object({
   name: Joi.string().min(3).max(100).optional(),
+  email: Joi.string().email().optional(), // Allowed but usually not updated here
   phone: Joi.string()
+
     .pattern(/^08\d{8,11}$/)
     .optional(),
   mobilePhone: Joi.string()

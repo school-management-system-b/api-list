@@ -33,6 +33,13 @@ export const findById = async (id: string) => {
   });
 };
 
+export const findByUserId = async (userId: string) => {
+  return prisma.userProfile.findUnique({
+    where: { userId },
+  });
+};
+
+
 export const create = async (data: Prisma.UserProfileCreateInput) => {
   return prisma.userProfile.create({ data });
 };

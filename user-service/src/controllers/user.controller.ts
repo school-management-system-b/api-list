@@ -82,6 +82,39 @@ export const getUserById = async (req: Request, res: Response) => {
   return sendResponse(res, 200, true, 'User profile retrieved', user);
 };
 
+export const getMyProfile = async (req: Request, res: Response) => {
+  const userId = req.headers['x-user-id'] as string;
+  if (!userId) return sendError(res, 401, 'Unauthorized: Missing user context');
+
+  const user = await userService.findByUserId(userId);
+  if (!user) return sendError(res, 404, 'User profile not found');
+
+  return sendResponse(res, 200, true, 'My profile retrieved', user);
+};
+
+export const updateMyProfile = async (req: Request, res: Response) => {
+  const userId = req.headers['x-user-id'] as string;
+  if (!userId) return sendError(res, 401, 'Unauthorized: Missing user context');
+
+  const { error, value } = updateUserSchema.validate(req.body);
+  if (error) return sendError(res, 400, error.details[0].message);
+
+  const existingProfile = await userService.findByUserId(userId);
+  if (!existingProfile) return sendError(res, 404, 'User profile not found');
+
+  try {
+    const updated = await userService.update(existingProfile.id, {
+      ...value,
+      updatedBy: userId,
+    });
+    return sendResponse(res, 200, true, 'User profile updated', updated);
+  } catch (err: unknown) {
+    throw err;
+  }
+};
+
+
+
 /**
  * @swagger
  * /api/v1/users:

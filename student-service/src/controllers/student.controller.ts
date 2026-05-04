@@ -229,15 +229,42 @@ export const deleteStudent = async (req: Request, res: Response) => {
 
 export const getMyProfile = async (req: Request, res: Response) => {
   const userId = req.headers['x-user-id'] as string;
+  const rawRoles = req.headers['x-user-roles'] as string;
+  
   if (!userId) return sendError(res, 401, 'Unauthorized: Missing user context');
 
-  const student = await prisma.student.findUnique({
-    where: { userId, deletedAt: null },
-  });
+  let student;
+  
+  // Parse roles to check if user is ORANG_TUA
+  let isParent = false;
+  try {
+    const roles = rawRoles ? JSON.parse(rawRoles) : [];
+    isParent = roles.includes('ORANG_TUA') || roles.includes('ORANGTUA');
+  } catch (e) {
+    console.error('Error parsing roles in getMyProfile:', e);
+  }
 
-  if (!student) return sendError(res, 404, 'Student profile not found for this user');
+  if (isParent) {
+    // Find first student associated with this parent
+    student = await prisma.student.findFirst({
+      where: { parentId: userId, deletedAt: null },
+    });
+  } else {
+    // Find student associated with this user
+    student = await prisma.student.findUnique({
+      where: { userId, deletedAt: null },
+    });
+  }
+
+  if (!student) {
+    return sendError(res, 404, isParent 
+      ? 'No student linked to this parent account' 
+      : 'Student profile not found for this user'
+    );
+  }
 
   // Inject student ID into params so we can reuse getConsolidatedProfile
   req.params.id = student.id;
   return getConsolidatedProfile(req, res);
 };
+
