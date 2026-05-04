@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
 export const triggerNotificationSchema = Joi.object({
-  userId: Joi.string().uuid().required(),
+  userId: Joi.string().required(),
   type: Joi.string().required(),
   title: Joi.string().required(),
   message: Joi.string().required(),
