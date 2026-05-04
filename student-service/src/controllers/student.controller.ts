@@ -329,7 +329,54 @@ export const linkParentByNis = async (req: Request, res: Response) => {
   }
 };
 
+export const assignWaliKelas = async (req: Request, res: Response) => {
+  const { teacherId, teacherName, className } = req.body;
+
+  if (!teacherId || !teacherName || !className) {
+    return sendError(res, 400, 'Missing teacherId, teacherName, or className');
+  }
+
+  try {
+    // 1. Find the class
+    const classInfo = await prisma.class.findFirst({
+      where: { 
+        OR: [
+          { name: className },
+          { code: className }
+        ]
+      }
+    });
+
+    if (!classInfo) {
+      return sendError(res, 404, `Class ${className} not found`);
+    }
+
+    // 2. Update the Class record
+    await prisma.class.update({
+      where: { id: classInfo.id },
+      data: {
+        waliKelasId: teacherId,
+        waliKelasName: teacherName
+      }
+    });
+
+    // 3. Sync to all Students in that class
+    await prisma.student.updateMany({
+      where: { classId: classInfo.id },
+      data: {
+        waliKelasId: teacherId,
+        waliKelasName: teacherName
+      }
+    });
+
+    return sendResponse(res, 200, true, `Teacher ${teacherName} assigned as Wali Kelas for ${className}`);
+  } catch (err: any) {
+    return sendError(res, 500, err.message);
+  }
+};
+
 export const bulkCreateStudents = async (req: Request, res: Response) => {
+
 
   const { students } = req.body;
   if (!Array.isArray(students)) return sendError(res, 400, 'Invalid payload: students must be an array');
