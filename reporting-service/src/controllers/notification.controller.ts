@@ -26,7 +26,10 @@ export const getMyNotifications = async (req: Request, res: Response) => {
   ]);
 
   return sendResponse(res, 200, true, 'Notifications retrieved', {
-    items,
+    items: items.map(n => ({
+      ...n,
+      isRead: !!n.readAt
+    })),
     pagination: { offset, limit, total },
   });
 };
