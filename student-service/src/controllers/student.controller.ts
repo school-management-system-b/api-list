@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../config/prisma';
 import { sendResponse, sendError } from '../utils/response';
 import { createStudentSchema, updateStudentSchema } from '../validators/student.validator';
+import { getConsolidatedProfile } from './consolidated.controller';
 
 export const getStudents = async (req: Request, res: Response) => {
   const offset = parseInt(req.headers['x-paging-offset'] as string) || 0;
@@ -224,4 +225,19 @@ export const deleteStudent = async (req: Request, res: Response) => {
   ]);
 
   return sendResponse(res, 200, true, 'Student deleted successfully');
+};
+
+export const getMyProfile = async (req: Request, res: Response) => {
+  const userId = req.headers['x-user-id'] as string;
+  if (!userId) return sendError(res, 401, 'Unauthorized: Missing user context');
+
+  const student = await prisma.student.findUnique({
+    where: { userId, deletedAt: null },
+  });
+
+  if (!student) return sendError(res, 404, 'Student profile not found for this user');
+
+  // Inject student ID into params so we can reuse getConsolidatedProfile
+  req.params.id = student.id;
+  return getConsolidatedProfile(req, res);
 };

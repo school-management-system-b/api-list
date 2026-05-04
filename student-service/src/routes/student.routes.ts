@@ -4,6 +4,7 @@ import * as consolidatedController from '../controllers/consolidated.controller'
 
 const router = Router();
 
+router.get('/my-profile', studentController.getMyProfile);
 router.get('/', studentController.getStudents);
 router.get('/:id', studentController.getStudentById);
 router.get('/:id/consolidated', consolidatedController.getConsolidatedProfile);
