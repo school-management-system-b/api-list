@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
+import axios from 'axios';
 import prisma from '../config/prisma';
+
 import { sendResponse, sendError } from '../utils/response';
 import { createStudentSchema, updateStudentSchema } from '../validators/student.validator';
 import { getConsolidatedProfile } from './consolidated.controller';
@@ -100,7 +102,36 @@ export const createStudent = async (req: Request, res: Response) => {
     data: { currentTotal: { increment: 1 } },
   });
 
+  // Handle Automatic Account Creation
+  if (req.body.createAccount && req.body.email) {
+    try {
+      const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
+      const internalSecret = process.env.INTERNAL_SECRET || 'change-this-to-a-strong-secret-in-production';
+      
+      const authResponse = await axios.post(`${authServiceUrl}/api/v1/auth/users`, {
+        username: value.nis, // Use NIS as username
+        email: req.body.email,
+        name: value.name,
+        roleCode: 'SISWA'
+      }, {
+        headers: { 'x-internal-secret': internalSecret }
+      });
+
+      if (authResponse.data.success) {
+        const userId = authResponse.data.data.id;
+        await prisma.student.update({
+          where: { id: student.id },
+          data: { userId }
+        });
+      }
+    } catch (err: any) {
+      console.error('Failed to create auth account for student:', err.message);
+      // We don't fail the whole request because the student was already created
+    }
+  }
+
   return sendResponse(res, 201, true, 'Student created', student);
+
 };
 
 export const updateStudent = async (req: Request, res: Response) => {
@@ -267,4 +298,110 @@ export const getMyProfile = async (req: Request, res: Response) => {
   req.params.id = student.id;
   return getConsolidatedProfile(req, res);
 };
+
+export const linkParentByNis = async (req: Request, res: Response) => {
+  const { parentId, nis, parentName } = req.body;
+
+  if (!parentId || !nis) {
+    return sendError(res, 400, 'Missing parentId or nis');
+  }
+
+  try {
+    const student = await prisma.student.findUnique({
+      where: { nis }
+    });
+
+    if (!student) {
+      return sendError(res, 404, `Student with NIS ${nis} not found`);
+    }
+
+    await prisma.student.update({
+      where: { id: student.id },
+      data: {
+        parentId
+      }
+    });
+
+
+    return sendResponse(res, 200, true, 'Parent linked to student successfully');
+  } catch (err: any) {
+    return sendError(res, 500, err.message);
+  }
+};
+
+export const bulkCreateStudents = async (req: Request, res: Response) => {
+
+  const { students } = req.body;
+  if (!Array.isArray(students)) return sendError(res, 400, 'Invalid payload: students must be an array');
+
+  const results = [];
+  const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
+  const internalSecret = process.env.INTERNAL_SECRET || 'change-this-to-a-strong-secret-in-production';
+
+  for (const studentData of students) {
+    try {
+      // 1. Find class by name or default to first available if not found (simple logic for now)
+      let classId = studentData.classId;
+      if (!classId && studentData.kelas) {
+        const classInfo = await prisma.class.findFirst({ where: { name: studentData.kelas } });
+        classId = classInfo?.id;
+      }
+
+      if (!classId) {
+        results.push({ success: false, name: studentData.nama, message: 'Class not found' });
+        continue;
+      }
+
+      // 2. Create student
+      const student = await prisma.student.create({
+        data: {
+          name: studentData.nama,
+          nis: studentData.nis?.toString(),
+          nisn: (studentData.nisn || studentData.nis)?.toString() || `NISN-${Date.now()}`,
+          gender: studentData.gender === 'P' ? 'FEMALE' : 'MALE',
+          classId: classId,
+          className: studentData.kelas,
+          classLevel: '10', // Default
+          birthPlace: studentData.tempat_lahir || 'Unknown',
+          birthDate: studentData.tanggal_lahir ? new Date(studentData.tanggal_lahir) : new Date(),
+          religion: 'ISLAM', // Default
+          address: studentData.alamat || 'Unknown',
+          city: studentData.kota || 'Unknown',
+          province: studentData.provinsi || 'Unknown',
+          academicYear: '2024/2025', // Default
+          entryYear: '2024', // Default
+          entryDate: new Date(),
+          createdBy: (req as any).user?.id || 'SYSTEM',
+        }
+      });
+
+
+      // 3. Create Account if email provided
+      if (studentData.createAccount && studentData.email) {
+        await axios.post(`${authServiceUrl}/api/v1/auth/users`, {
+          username: studentData.nis,
+          email: studentData.email,
+          name: studentData.nama,
+          roleCode: 'SISWA'
+        }, {
+          headers: { 'x-internal-secret': internalSecret }
+        }).then(async (authRes) => {
+          if (authRes.data.success) {
+            await prisma.student.update({
+              where: { id: student.id },
+              data: { userId: authRes.data.data.id }
+            });
+          }
+        }).catch(err => console.error(`Bulk: Failed to create account for ${studentData.nama}:`, err.message));
+      }
+
+      results.push({ success: true, id: student.id, name: student.name });
+    } catch (err: any) {
+      results.push({ success: false, name: studentData.nama, message: err.message });
+    }
+  }
+
+  return sendResponse(res, 201, true, 'Bulk import completed', results);
+};
+
 
