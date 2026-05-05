@@ -109,8 +109,13 @@ export const updateMyProfile = async (req: Request, res: Response) => {
       updatedBy: userId,
     });
     return sendResponse(res, 200, true, 'User profile updated', updated);
-  } catch (err: unknown) {
-    throw err;
+  } catch (err: any) {
+    if (err.code === 'P2002') {
+      const target = err.meta?.target || [];
+      return sendError(res, 400, `${target.join(', ')} sudah terdaftar.`);
+    }
+    logger.error('Error in updateMyProfile:', err);
+    return sendError(res, 500, err.message || 'Internal Server Error during profile update');
   }
 };
 
