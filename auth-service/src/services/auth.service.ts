@@ -4,6 +4,7 @@ import { comparePassword } from './password.service';
 import { generateAccessToken, generateRefreshToken } from './token.service';
 import { AUTH_CONFIG } from '../config/constants';
 import { Prisma } from '@prisma/client';
+import logger from '../config/logger';
 
 // Define strict type for User with Roles
 type UserWithRoles = Prisma.UserGetPayload<{
@@ -32,6 +33,7 @@ export class AuthService {
     });
 
     if (!user) {
+      logger.warn(`User not found: ${username}`);
       throw { status: 401, message: 'Invalid credentials' };
     }
 
@@ -47,9 +49,12 @@ export class AuthService {
     const isPasswordValid = await comparePassword(password, user.password);
 
     if (!isPasswordValid) {
+      logger.warn(`Invalid password for user: ${user.username}`);
       await this.handleFailedLogin(user, ipAddress, userAgent);
       throw { status: 401, message: 'Invalid credentials' };
     }
+
+    logger.info(`Successful login for user: ${user.username}`);
 
     // 3. Handle Successful Login (Transaction)
     return await prisma.$transaction(async (tx) => {
@@ -112,7 +117,7 @@ export class AuthService {
             status: 'SUCCESS',
           },
         });
-      } catch (e) {
+      } catch (e: any) {
         console.warn('⚠️ Could not save login history, but continuing login...', e.message);
       }
 
@@ -164,7 +169,7 @@ export class AuthService {
           failReason: 'Invalid password',
         },
       });
-    } catch (e) {
+    } catch (e: any) {
       console.warn('⚠️ Could not save failed login history...', e.message);
     }
   }
@@ -217,7 +222,7 @@ export class AuthService {
         }),
       ]);
       newStoredToken = results[1];
-    } catch (e) {
+    } catch (e: any) {
       console.warn('⚠️ Error during token rotation in DB:', e.message);
       throw { status: 500, message: 'Could not complete token rotation' };
     }

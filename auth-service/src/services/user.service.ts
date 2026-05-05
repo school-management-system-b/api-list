@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import axios from 'axios';
 import logger from '../config/logger';
 import crypto from 'crypto';
+import { hashPassword } from './password.service';
 
 export class UserService {
   async createUser(data: any, createdBy: string) {
@@ -10,7 +11,7 @@ export class UserService {
 
     // 1. Generate temporary password (Secure)
     const tempPassword = crypto.randomBytes(4).toString('hex') + 'A1!';
-    const hashedPassword = await bcrypt.hash(tempPassword, 12);
+    const hashedPassword = await hashPassword(tempPassword);
 
     // 2. Find Role
     const role = await prisma.role.findUnique({
@@ -46,7 +47,7 @@ export class UserService {
       try {
         await tx.$executeRaw`
           INSERT INTO audit_logs (actor_id, actor_name, action, target_type, target_id, target_name)
-          VALUES (${createdBy}::uuid, 'System/Admin', 'CREATE_USER', 'user', ${newUser.id}::uuid, ${username})
+          VALUES (${createdBy}, 'System/Admin', 'CREATE_USER', 'user', ${newUser.id}, ${username})
         `;
       } catch (e: any) {
         logger.warn('Could not insert audit log (maybe table not ready): ' + e.message);
