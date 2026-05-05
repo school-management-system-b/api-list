@@ -43,7 +43,7 @@ Jika ada developer yang ingin mengubah tabel/skema di salah satu service, lakuka
 
 ## 3. Deployment Vercel & CORS
 
-Sistem ini didesain bisa dijalankan *Direct-to-Service* pada platform serverless seperti Vercel. 
+System ini didesain bisa dijalankan *Direct-to-Service* pada platform serverless seperti Vercel. 
 Masing-masing service di-deploy dengan domain unik (contoh: `api-list-student-service.vercel.app`).
 
 ### Aturan Environment Variable Vercel
