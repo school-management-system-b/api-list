@@ -195,6 +195,7 @@ router.post('/change-password', authenticate, passwordController.changePassword)
  *             type: object
  *             required: [username, email, name, roleCode]
  */
+router.get('/users', authenticate, authorize(['SUPERADMIN', 'BK', 'ADMIN']), userController.getUsers);
 router.post('/users', authenticate, authorize(['SUPERADMIN', 'ADMIN']), userController.createUser);
 
 /**

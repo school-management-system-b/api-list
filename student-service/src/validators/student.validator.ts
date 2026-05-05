@@ -1,22 +1,22 @@
 import Joi from 'joi';
 
 export const createStudentSchema = Joi.object({
-  userId: Joi.string().required(),
-  nisn: Joi.string().length(10).pattern(/^\d+$/).required(),
+  userId: Joi.string().optional(),
+  nisn: Joi.string().length(10).pattern(/^\d+$/).optional(),
   nis: Joi.string().max(20).optional(),
   name: Joi.string().min(3).max(100).required(),
   nickname: Joi.string().max(50).optional(),
   classId: Joi.string().required(),
   gender: Joi.string().valid('MALE', 'FEMALE').required(),
-  birthPlace: Joi.string().max(100).required(),
-  birthDate: Joi.date().max('now').required(),
+  birthPlace: Joi.string().max(100).optional(),
+  birthDate: Joi.date().max('now').optional(),
   religion: Joi.string()
     .valid('ISLAM', 'KRISTEN', 'KATOLIK', 'HINDU', 'BUDDHA', 'KONGHUCU')
-    .required(),
+    .optional(),
   bloodType: Joi.string().valid('A', 'B', 'AB', 'O').optional(),
-  address: Joi.string().max(500).required(),
-  city: Joi.string().max(100).required(),
-  province: Joi.string().max(100).required(),
+  address: Joi.string().max(500).optional(),
+  city: Joi.string().max(100).optional(),
+  province: Joi.string().max(100).optional(),
   phone: Joi.string()
     .pattern(/^08\d{8,11}$/)
     .optional(),
@@ -25,11 +25,11 @@ export const createStudentSchema = Joi.object({
   waliKelasId: Joi.string().optional(),
   academicYear: Joi.string()
     .pattern(/^\d{4}\/\d{4}$/)
-    .required(),
+    .optional(),
   entryYear: Joi.string()
     .pattern(/^\d{4}$/)
-    .required(),
-  entryDate: Joi.date().required(),
+    .optional(),
+  entryDate: Joi.date().optional(),
 });
 
 export const updateStudentSchema = Joi.object({

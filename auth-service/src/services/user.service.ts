@@ -125,6 +125,28 @@ export class UserService {
       },
     });
   }
+  async findAll() {
+    const users = await prisma.user.findMany({
+      where: { isActive: true },
+      include: {
+        userRoles: {
+          include: {
+            role: true,
+          },
+        },
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    return users.map((u) => ({
+      id: u.id,
+      username: u.username,
+      email: u.email,
+      name: u.name,
+      role: u.userRoles.length > 0 ? u.userRoles[0].role.code : null,
+      roles: u.userRoles.map((ur) => ur.role.code),
+    }));
+  }
 }
 
 export const userService = new UserService();

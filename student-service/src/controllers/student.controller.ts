@@ -84,9 +84,25 @@ export const createStudent = async (req: Request, res: Response) => {
   const classInfo = await prisma.class.findUnique({ where: { id: value.classId } });
   if (!classInfo) return sendError(res, 400, 'Invalid classId');
 
+  // Provide defaults for missing required fields (similar to bulk import)
+  const studentData = {
+    ...value,
+    nisn: value.nisn || value.nis || `NISN-${Date.now()}`,
+    birthPlace: value.birthPlace || 'Unknown',
+    birthDate: value.birthDate || new Date(),
+    religion: value.religion || 'ISLAM',
+    address: value.address || 'Unknown',
+    city: value.city || 'Unknown',
+    province: value.province || 'Unknown',
+    academicYear: value.academicYear || '2024/2025',
+    entryYear: value.entryYear || '2024',
+    entryDate: value.entryDate || new Date(),
+    userId: value.userId || null,
+  };
+
   const student = await prisma.student.create({
     data: {
-      ...value,
+      ...studentData,
       className: classInfo.name,
       classLevel: classInfo.level,
       classMajor: classInfo.major,
@@ -109,9 +125,9 @@ export const createStudent = async (req: Request, res: Response) => {
       const internalSecret = process.env.INTERNAL_SECRET || 'change-this-to-a-strong-secret-in-production';
       
       const authResponse = await axios.post(`${authServiceUrl}/api/v1/auth/users`, {
-        username: value.nis, // Use NIS as username
+        username: studentData.nis, // Use NIS as username
         email: req.body.email,
-        name: value.name,
+        name: studentData.name,
         roleCode: 'SISWA'
       }, {
         headers: { 'x-internal-secret': internalSecret }

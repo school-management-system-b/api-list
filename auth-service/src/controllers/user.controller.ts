@@ -41,3 +41,11 @@ export const activateAccount = async (req: Request, res: Response) => {
     return sendError(res, err.status || 500, err.message);
   }
 };
+export const getUsers = async (req: Request, res: Response) => {
+  try {
+    const users = await userService.findAll();
+    return sendResponse(res, 200, true, 'Users retrieved', users);
+  } catch (err: any) {
+    return sendError(res, 500, err.message);
+  }
+};
