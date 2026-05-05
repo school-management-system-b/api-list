@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { sendResponse, sendError } from '../utils/response';
 import { createUserSchema, updateUserSchema } from '../validators/user.validator';
 import * as userService from '../services/user.service';
+import logger from '../config/logger';
 
 interface PrismaError {
   code: string;
@@ -143,14 +144,22 @@ export const updateMyProfile = async (req: Request, res: Response) => {
  */
 export const createUserProfile = async (req: Request, res: Response) => {
   const { error, value } = createUserSchema.validate(req.body);
-  if (error) return sendError(res, 400, error.details[0].message);
+  if (error) {
+    logger.warn(`Validation error in createUserProfile: ${error.details[0].message}`);
+    return sendError(res, 400, error.details[0].message);
+  }
 
-  const profile = await userService.create({
-    ...value,
-    createdBy: req.user?.id || 'SYSTEM',
-  });
+  try {
+    const profile = await userService.create({
+      ...value,
+      createdBy: req.headers['x-user-id'] as string || 'SYSTEM',
+    });
 
-  return sendResponse(res, 201, true, 'User profile created', profile);
+    return sendResponse(res, 201, true, 'User profile created', profile);
+  } catch (err: any) {
+    logger.error('Error in createUserProfile:', err);
+    return sendError(res, 500, err.message || 'Internal Server Error during profile creation');
+  }
 };
 
 /**
