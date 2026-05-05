@@ -8,7 +8,8 @@ export const createUserSchema = Joi.object({
   nip: Joi.string().length(18).optional(),
   phone: Joi.string()
     .pattern(/^08\d{8,11}$/)
-    .optional(),
+    .optional()
+    .allow(''),
   address: Joi.string().max(500).optional(),
   city: Joi.string().max(100).optional(),
   province: Joi.string().max(100).optional(),
@@ -28,8 +29,8 @@ export const updateUserSchema = Joi.object({
   name: Joi.string().min(3).max(100).optional(),
   email: Joi.string().email().optional(),
   nip_nis: Joi.string().max(50).optional(),
-  phone: Joi.string().pattern(/^08\d{8,11}$/).optional(),
-  mobilePhone: Joi.string().pattern(/^08\d{8,11}$/).optional(),
+  phone: Joi.string().pattern(/^08\d{8,11}$/).optional().allow(''),
+  mobilePhone: Joi.string().pattern(/^08\d{8,11}$/).optional().allow(''),
   address: Joi.string().max(500).optional(),
   city: Joi.string().max(100).optional(),
   province: Joi.string().max(100).optional(),

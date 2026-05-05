@@ -6,7 +6,7 @@ import crypto from 'crypto';
 
 export class UserService {
   async createUser(data: any, createdBy: string) {
-    const { username, email, name, roleCode, nip_nis } = data;
+    const { username, email, name, roleCode, nip_nis, phone } = data;
 
     // 1. Generate temporary password (Secure)
     const tempPassword = crypto.randomBytes(4).toString('hex') + 'A1!';
@@ -70,6 +70,7 @@ export class UserService {
         email: user.email,
         name: user.name,
         nip_nis: nip_nis,
+        phone: phone,
       }, { headers }).catch(err => logger.error('Failed to auto-create profile in User Service:', err.message));
 
       // Call Notification Service to send welcome email

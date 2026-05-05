@@ -34,6 +34,7 @@ export const createUserSchema = Joi.object({
   name: Joi.string().min(3).max(100).required(),
   roleCode: Joi.string().required(),
   nip_nis: Joi.string().optional(), // For internal linkage
+  phone: Joi.string().optional().allow(''), // Added for profile synchronization
 });
 
 export const bulkCreateUserSchema = Joi.array().items(createUserSchema).min(1).required();
