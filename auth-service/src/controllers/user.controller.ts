@@ -41,6 +41,17 @@ export const activateAccount = async (req: Request, res: Response) => {
     return sendError(res, err.status || 500, err.message);
   }
 };
+export const updateUser = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updatedBy = (req as any).user?.id || 'SYSTEM';
+    const result = await userService.updateUser(id, req.body, updatedBy);
+    return sendResponse(res, 200, true, 'User updated successfully', result);
+  } catch (err: any) {
+    return sendError(res, err.status || 500, err.message);
+  }
+};
+
 export const getUsers = async (req: Request, res: Response) => {
   try {
     const users = await userService.findAll();

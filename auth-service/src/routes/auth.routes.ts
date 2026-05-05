@@ -197,6 +197,7 @@ router.post('/change-password', authenticate, passwordController.changePassword)
  */
 router.get('/users', authenticate, authorize(['SUPERADMIN', 'BK', 'ADMIN']), userController.getUsers);
 router.post('/users', authenticate, authorize(['SUPERADMIN', 'ADMIN']), userController.createUser);
+router.put('/users/:id', authenticate, authorize(['SUPERADMIN', 'ADMIN']), userController.updateUser);
 
 /**
  * @swagger

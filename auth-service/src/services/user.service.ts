@@ -127,6 +127,67 @@ export class UserService {
       },
     });
   }
+  async updateUser(id: string, data: any, updatedBy: string) {
+    const { name, roleCode, password, phone } = data;
+
+    // 1. Find User
+    const user = await prisma.user.findUnique({
+      where: { id },
+      include: { userRoles: true },
+    });
+
+    if (!user) throw { status: 404, message: 'User not found' };
+
+    // 2. Prepare Update Data
+    const updateData: any = {};
+    if (name) updateData.name = name;
+    if (password) updateData.password = await hashPassword(password);
+    updateData.updatedBy = updatedBy;
+
+    // 3. Execute Update (Transaction)
+    await prisma.$transaction(async (tx) => {
+      // Update User info
+      await tx.user.update({
+        where: { id },
+        data: updateData,
+      });
+
+      // Update Role if provided
+      if (roleCode) {
+        const role = await tx.role.findUnique({ where: { code: roleCode } });
+        if (!role) throw { status: 400, message: `Role ${roleCode} not found` };
+
+        // Delete old roles
+        await tx.userRole.deleteMany({ where: { userId: id } });
+
+        // Create new role mapping
+        await tx.userRole.create({
+          data: {
+            userId: id,
+            roleId: role.id,
+            assignedBy: updatedBy,
+          },
+        });
+      }
+    });
+
+    // 4. Sync to User Service if name or phone changed
+    try {
+      const userServiceUrl = process.env.USER_SERVICE_URL || 'http://localhost:3002';
+      const internalSecret = process.env.INTERNAL_SECRET || 'change-this-to-a-strong-secret-in-production';
+      
+      await axios.put(`${userServiceUrl}/api/v1/internal/users/${id}`, {
+        name,
+        phone,
+        updatedBy
+      }, { headers: { 'x-internal-secret': internalSecret } });
+    } catch (error: any) {
+      logger.warn(`Failed to sync profile update to User Service for user ${id}: ${error.message}`);
+    }
+
+    return { id, name, roleCode };
+  }
+
   async findAll() {
     const users = await prisma.user.findMany({
       where: { isActive: true },
