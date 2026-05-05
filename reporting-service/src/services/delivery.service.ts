@@ -98,12 +98,15 @@ class DeliveryService {
       throw new Error('No recipient email available');
     }
 
+    const metadata = notification.metadata as any;
+    const htmlContent = metadata?.html || `<p>${notification.message.replace(/\n/g, '<br>')}</p>`;
+
     await this.transporter.sendMail({
-      from: process.env.FROM_EMAIL || '"School System" <noreply@school.com>',
+      from: process.env.FROM_EMAIL || `"School System" <noreply@school.com>`,
       to: notification.recipientEmail,
       subject: notification.title,
       text: notification.message,
-      html: `<p>${notification.message.replace(/\n/g, '<br>')}</p>`,
+      html: htmlContent,
     });
 
     logger.info(`Email sent to ${notification.recipientEmail}: ${notification.title}`);
