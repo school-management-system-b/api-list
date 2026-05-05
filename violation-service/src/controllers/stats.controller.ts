@@ -25,11 +25,21 @@ export const getStatsSummary = async (req: Request, res: Response) => {
     _count: true,
   });
 
+  const byClass = await prisma.violation.groupBy({
+    by: ['studentClass'],
+    where,
+    _count: true,
+  });
+
   return sendResponse(res, 200, true, 'Statistics summary retrieved', {
     total,
     byStatus: byStatus.reduce((acc: any, curr) => ({ ...acc, [curr.status]: curr._count }), {}),
     bySeverity: bySeverity.reduce(
       (acc: any, curr) => ({ ...acc, [curr.categorySeverity]: curr._count }),
+      {}
+    ),
+    byClass: byClass.reduce(
+      (acc: any, curr) => ({ ...acc, [curr.studentClass]: curr._count }),
       {}
     ),
   });

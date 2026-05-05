@@ -21,10 +21,12 @@ export const getDashboardSummary = async (_req: Request, res: Response) => {
     }
 
     // Fetch data in parallel from other services
-    const [violationsRes, achievementsRes, studentsRes] = await Promise.allSettled([
+    const [violationsRes, achievementsRes, studentsRes, violationStatsRes, classesRes] = await Promise.allSettled([
       axios.get(`${VIOLATION_SERVICE_URL}/api/v1/violations?limit=1`, { headers: internalHeaders, timeout: 5000 }),
       axios.get(`${ACHIEVEMENT_SERVICE_URL}/api/v1/achievements?limit=1`, { headers: internalHeaders, timeout: 5000 }),
       axios.get(`${STUDENT_SERVICE_URL}/api/v1/students?limit=1`, { headers: internalHeaders, timeout: 5000 }),
+      axios.get(`${VIOLATION_SERVICE_URL}/api/v1/violations/stats/summary`, { headers: internalHeaders, timeout: 5000 }),
+      axios.get(`${STUDENT_SERVICE_URL}/api/v1/classes`, { headers: internalHeaders, timeout: 5000 }),
     ]);
 
     const totalViolations =
@@ -42,6 +44,51 @@ export const getDashboardSummary = async (_req: Request, res: Response) => {
         ? studentsRes.value.data?.data?.pagination?.total ?? 0
         : 0;
 
+    // Process Class Distribution
+    const classDistribution: any[] = [];
+    if (violationStatsRes.status === 'fulfilled' && classesRes.status === 'fulfilled') {
+      const vStats = violationStatsRes.value.data?.data?.byClass || {};
+      const classes = classesRes.value.data?.data || [];
+
+      const levelMap: Record<string, { violationCount: number; studentCount: number }> = {
+        '10': { violationCount: 0, studentCount: 0 },
+        '11': { violationCount: 0, studentCount: 0 },
+        '12': { violationCount: 0, studentCount: 0 },
+      };
+
+      // Sum students by level
+      classes.forEach((c: any) => {
+        const level = c.level || c.name?.split(' ')[0];
+        if (level && levelMap[level]) {
+          levelMap[level].studentCount += c.currentTotal || 0;
+        }
+      });
+
+      // Sum violations by level (parsing from class name)
+      Object.entries(vStats).forEach(([className, count]: [string, any]) => {
+        const level = className.split(' ')[0];
+        if (level && levelMap[level]) {
+          levelMap[level].violationCount += count;
+        }
+      });
+
+      const totalLevelViolations = Object.values(levelMap).reduce((sum, item) => sum + item.violationCount, 0);
+
+      ['10', '11', '12'].forEach((level) => {
+        const data = levelMap[level];
+        const percentage = totalLevelViolations > 0 
+          ? Math.round((data.violationCount / totalLevelViolations) * 100) 
+          : 0;
+        
+        classDistribution.push({
+          label: `Kelas ${level}`,
+          val: percentage,
+          raw: `${data.studentCount} Siswa`,
+          violationCount: data.violationCount
+        });
+      });
+    }
+
     // Export stats from local DB
     const [totalExports, failedExports] = await Promise.all([
       prisma.exportHistory.count(),
@@ -54,6 +101,7 @@ export const getDashboardSummary = async (_req: Request, res: Response) => {
       activeStudents,
       totalReportsGenerated: totalExports,
       failedReports: failedExports,
+      classDistribution: classDistribution.length > 0 ? classDistribution : undefined,
       dataAsOf: now.toISOString(),
     };
 
@@ -73,6 +121,7 @@ export const getDashboardSummary = async (_req: Request, res: Response) => {
 
     return sendResponse(res, 200, true, 'Dashboard summary retrieved', summary);
   } catch (error: unknown) {
+    console.error('Dashboard Summary Error:', error);
     return sendError(res, 500, (error as Error).message);
   }
 };
