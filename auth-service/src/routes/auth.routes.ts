@@ -57,9 +57,34 @@ router.post('/logout', authenticate, authController.logout);
 
 /**
  * @swagger
+ * /auth/refresh-token:
+ *   post:
+ *     summary: Refresh access token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Token refreshed
+ *       401:
+ *         description: Invalid/expired refresh token
+ */
+router.post('/refresh-token', authController.refreshToken);
+
+/**
+ * @swagger
  * /auth/token/refresh:
  *   get:
- *     summary: Refresh access token
+ *     summary: Refresh access token (Legacy)
  *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
