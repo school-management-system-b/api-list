@@ -2,10 +2,10 @@ import Joi from 'joi';
 
 export const createUserSchema = Joi.object({
   userId: Joi.string().uuid().required(),
-  username: Joi.string().alphanum().min(3).max(50).required(),
+  username: Joi.string().min(3).max(50).required(),
   email: Joi.string().email().required(),
   name: Joi.string().min(3).max(100).required(),
-  nip: Joi.string().length(18).optional(),
+  nip_nis: Joi.string().max(50).optional().allow(''),
   phone: Joi.string()
     .pattern(/^08\d{8,11}$/)
     .optional()
