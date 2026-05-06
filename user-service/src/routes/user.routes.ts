@@ -9,6 +9,7 @@ router.put('/me', userController.updateMyProfile);
 router.get('/', userController.getUsers);
 
 router.get('/:id', userController.getUserById);
+router.post('/bulk-delete', authenticate, userController.bulkDeleteUsers);
 
 router.post('/', authenticate, userController.createUserProfile);
 router.put('/:id', authenticate, userController.updateUserProfile);

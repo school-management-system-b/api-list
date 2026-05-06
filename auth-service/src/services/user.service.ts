@@ -118,7 +118,7 @@ export class UserService {
 
     const hashedPassword = await bcrypt.hash(newPassword, 12);
 
-    return prisma.user.update({
+    const result = await prisma.user.update({
       where: { id: userId },
       data: {
         password: hashedPassword,
@@ -126,6 +126,19 @@ export class UserService {
         passwordChangedAt: new Date(),
       },
     });
+
+    // Sync to User Service
+    try {
+      const userServiceUrl = process.env.USER_SERVICE_URL || 'http://localhost:3002';
+      const internalSecret = process.env.INTERNAL_SECRET || 'change-this-to-a-strong-secret-in-production';
+      await axios.put(`${userServiceUrl}/api/v1/internal/users/${userId}`, {
+        isActivated: true
+      }, { headers: { 'x-internal-secret': internalSecret } });
+    } catch (error: any) {
+      logger.warn(`Failed to sync activation to User Service for ${userId}: ${error.message}`);
+    }
+
+    return result;
   }
   async updateUser(id: string, data: any, updatedBy: string) {
     const { name, roleCode, password, phone } = data;
@@ -206,9 +219,40 @@ export class UserService {
       username: u.username,
       email: u.email,
       name: u.name,
+      isActive: u.isActive,
+      mustChangePassword: u.mustChangePassword,
       role: u.userRoles.length > 0 ? u.userRoles[0].role.code : null,
       roles: u.userRoles.map((ur) => ur.role.code),
     }));
+  }
+
+  async deleteUser(userId: string) {
+    return prisma.$transaction(async (tx) => {
+      // 1. Delete user roles
+      await tx.userRole.deleteMany({
+        where: { userId },
+      });
+
+      // 2. Delete refresh tokens or other related data if any
+      // Assuming refresh tokens might be in a separate table or just let cascade handle it if set up
+      
+      // 3. Hard delete the user
+      return tx.user.delete({
+        where: { id: userId },
+      });
+    });
+  }
+
+  async bulkDeleteUsers(userIds: string[]) {
+    return prisma.$transaction(async (tx) => {
+      await tx.userRole.deleteMany({
+        where: { userId: { in: userIds } },
+      });
+      
+      return tx.user.deleteMany({
+        where: { id: { in: userIds } },
+      });
+    });
   }
 }
 

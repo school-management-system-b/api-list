@@ -218,7 +218,7 @@ router.post('/users/bulk', authenticate, authorize(['SUPERADMIN', 'ADMIN']), use
 router.post('/activate', authenticate, userController.activateAccount);
 
 // Internal/System Triggers
-import { getUserForInternal, checkTokenBlacklist } from '../controllers/internal.controller';
+import { getUserForInternal, checkTokenBlacklist, deleteUserInternal, bulkDeleteUsersInternal } from '../controllers/internal.controller';
 import { authorizeSession } from '../controllers/authorization.controller';
 import { internalAuth } from '../middlewares/internal.middleware';
 
@@ -239,6 +239,8 @@ import { internalAuth } from '../middlewares/internal.middleware';
 router.get('/authorize', authenticate, authorizeSession);
 
 router.get('/internal/user/:id', internalAuth, getUserForInternal);
+router.delete('/internal/user/:id', internalAuth, deleteUserInternal);
+router.post('/internal/users/bulk-delete', internalAuth, bulkDeleteUsersInternal);
 router.post('/internal/token/check', internalAuth, checkTokenBlacklist);
 
 export default router;

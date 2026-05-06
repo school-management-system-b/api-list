@@ -238,3 +238,15 @@ export const deleteUserProfile = async (req: Request, res: Response) => {
     throw err;
   }
 };
+
+export const bulkDeleteUsers = async (req: Request, res: Response) => {
+  const { ids } = req.body;
+  if (!Array.isArray(ids)) return sendError(res, 400, 'ids must be an array');
+
+  try {
+    await userService.bulkDelete(ids);
+    return sendResponse(res, 200, true, `${ids.length} user profiles deleted successfully`);
+  } catch (error: any) {
+    return sendError(res, 500, 'Error in bulk delete: ' + error.message);
+  }
+};
