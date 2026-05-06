@@ -71,8 +71,10 @@ export const createStudent = async (req: Request, res: Response) => {
   if (error) return sendError(res, 400, error.details[0].message);
 
   // Validasi NISN unik
-  const duplicateNisn = await prisma.student.findUnique({ where: { nisn: value.nisn } });
-  if (duplicateNisn) return sendError(res, 400, `NISN ${value.nisn} sudah terdaftar`);
+  if (value.nisn) {
+    const duplicateNisn = await prisma.student.findUnique({ where: { nisn: value.nisn } });
+    if (duplicateNisn) return sendError(res, 400, `NISN ${value.nisn} sudah terdaftar`);
+  }
 
   // Validasi NIS unik (jika ada)
   if (value.nis) {
