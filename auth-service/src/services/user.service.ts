@@ -227,31 +227,16 @@ export class UserService {
   }
 
   async deleteUser(userId: string) {
-    return prisma.$transaction(async (tx) => {
-      // 1. Delete user roles
-      await tx.userRole.deleteMany({
-        where: { userId },
-      });
-
-      // 2. Delete refresh tokens or other related data if any
-      // Assuming refresh tokens might be in a separate table or just let cascade handle it if set up
-      
-      // 3. Hard delete the user
-      return tx.user.delete({
-        where: { id: userId },
-      });
+    return prisma.user.update({
+      where: { id: userId },
+      data: { isActive: false },
     });
   }
 
   async bulkDeleteUsers(userIds: string[]) {
-    return prisma.$transaction(async (tx) => {
-      await tx.userRole.deleteMany({
-        where: { userId: { in: userIds } },
-      });
-      
-      return tx.user.deleteMany({
-        where: { id: { in: userIds } },
-      });
+    return prisma.user.updateMany({
+      where: { id: { in: userIds } },
+      data: { isActive: false },
     });
   }
 }

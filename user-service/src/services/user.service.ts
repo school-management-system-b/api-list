@@ -54,8 +54,15 @@ export const update = async (id: string, data: Prisma.UserProfileUpdateInput) =>
 };
 
 export const softDelete = async (id: string, deletedBy: string) => {
-  // 1. Find profile to get userId
-  const profile = await prisma.userProfile.findUnique({ where: { id } });
+  // 1. Find profile to get userId. It might be passed as AuthUser.id (userId)
+  const profile = await prisma.userProfile.findFirst({
+    where: {
+      OR: [
+        { id: id },
+        { userId: id }
+      ]
+    }
+  });
   if (!profile) throw { code: 'P2025', message: 'User profile not found' };
 
   // 2. Call Auth Service to delete the user account
@@ -73,20 +80,30 @@ export const softDelete = async (id: string, deletedBy: string) => {
     }
   }
 
-  // 3. Hard delete the profile (since user wants it gone from DB)
-  return prisma.userProfile.delete({
-    where: { id }
+  // 3. Soft delete the profile
+  return prisma.userProfile.update({
+    where: { id: profile.id },
+    data: {
+      deletedAt: new Date(),
+      deletedBy,
+    }
   });
 };
 
 export const bulkDelete = async (ids: string[]) => {
-  // 1. Find profiles to get userIds
+  // 1. Find profiles to get userIds (checking both id and userId)
   const profiles = await prisma.userProfile.findMany({
-    where: { id: { in: ids } },
+    where: {
+      OR: [
+        { id: { in: ids } },
+        { userId: { in: ids } }
+      ]
+    },
     select: { userId: true, id: true }
   });
 
   const userIds = profiles.map(p => p.userId).filter(Boolean) as string[];
+  const profileIds = profiles.map(p => p.id);
 
   // 2. Call Auth Service to bulk delete accounts
   if (userIds.length > 0) {
@@ -105,8 +122,12 @@ export const bulkDelete = async (ids: string[]) => {
     }
   }
 
-  // 3. Hard delete profiles
-  return prisma.userProfile.deleteMany({
-    where: { id: { in: ids } }
+  // 3. Soft delete profiles
+  return prisma.userProfile.updateMany({
+    where: { id: { in: profileIds } },
+    data: {
+      deletedAt: new Date(),
+      deletedBy: 'SYSTEM'
+    }
   });
 };
