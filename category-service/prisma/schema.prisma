@@ -69,7 +69,7 @@ model CategoryTemplate {
   categories    Json          // Array of category objects
   isDefault     Boolean       @default(false)
   createdBy     String
-  createdAt     DateTime      @default(now())
+  createdAt     DateTime      @now()
   
   @@map("category_templates")
 }
@@ -89,6 +89,47 @@ model PointsConfiguration {
   updatedAt             DateTime  @updatedAt
   
   @@map("points_configurations")
+}
+
+model Class {
+  id                String    @id @default(uuid())
+  code              String    @unique       // X-IPA-1
+  name              String                  // 10 IPA 1
+  level             String                  // 10, 11, 12
+  major             String?                 // IPA, IPS, BAHASA
+  
+  // Homeroom Teacher
+  waliKelasId       String?
+  waliKelasName     String?
+  
+  // Capacity
+  capacity          Int       @default(36)
+  currentTotal      Int       @default(0)
+  
+  // Academic
+  academicYear      String    // 2024/2025
+  
+  // Classroom Info
+  roomNumber        String?
+  floor             String?
+  building          String?
+  
+  // Schedule
+  scheduleUrl       String?   // Link to class schedule
+  
+  // Meta
+  isActive          Boolean   @default(true)
+  createdBy         String
+  createdAt         DateTime  @default(now())
+  updatedBy         String?
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+  
+  @@unique([code, academicYear])
+  @@index([level])
+  @@index([academicYear])
+  @@index([waliKelasId])
+  @@map("classes")
 }
 
 enum CategoryType {

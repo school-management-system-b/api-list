@@ -10,7 +10,7 @@ const services = [
   { path: '/auth',          target: process.env.AUTH_SERVICE_URL,         auth: false },
   { path: '/users',         target: process.env.USER_SERVICE_URL,          auth: true  },
   { path: '/students',      target: process.env.STUDENT_SERVICE_URL,       auth: true  },
-  { path: '/classes',       target: process.env.STUDENT_SERVICE_URL,       auth: true  },
+  { path: '/classes',       target: process.env.CATEGORY_SERVICE_URL,      auth: true  },
   { path: '/academic-years',target: process.env.STUDENT_SERVICE_URL,       auth: true  },
   { path: '/violations',    target: process.env.VIOLATION_SERVICE_URL,     auth: true  },
   { path: '/achievements',  target: process.env.ACHIEVEMENT_SERVICE_URL,   auth: true  },
