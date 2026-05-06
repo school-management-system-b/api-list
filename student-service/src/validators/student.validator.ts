@@ -30,12 +30,16 @@ export const createStudentSchema = Joi.object({
     .pattern(/^\d{4}$/)
     .optional(),
   entryDate: Joi.date().optional(),
+  createAccount: Joi.boolean().optional(),
 });
 
 export const updateStudentSchema = Joi.object({
   name: Joi.string().min(3).max(100).optional(),
+  nisn: Joi.string().length(10).pattern(/^\d+$/).optional(),
+  nis: Joi.string().max(20).optional(),
   nickname: Joi.string().max(50).optional(),
   classId: Joi.string().optional(),
+  gender: Joi.string().valid('MALE', 'FEMALE').optional(),
   phone: Joi.string()
     .pattern(/^08\d{8,11}$/)
     .optional(),
@@ -45,6 +49,8 @@ export const updateStudentSchema = Joi.object({
   status: Joi.string()
     .valid('ACTIVE', 'INACTIVE', 'GRADUATED', 'TRANSFERRED', 'DROPPED_OUT', 'SUSPENDED')
     .optional(),
+  parentId: Joi.string().optional(),
+  waliKelasId: Joi.string().optional(),
 });
 
 export const createClassSchema = Joi.object({
