@@ -3,6 +3,7 @@ import prisma from '../config/prisma';
 import logger from '../config/logger';
 import nodemailer from 'nodemailer';
 import axios from 'axios';
+import { SCHOOL_CONFIG } from '../config/constants';
 
 class DeliveryService {
   private transporter;
@@ -99,10 +100,35 @@ class DeliveryService {
     }
 
     const metadata = notification.metadata as any;
-    const htmlContent = metadata?.html || `<p>${notification.message.replace(/\n/g, '<br>')}</p>`;
+    let htmlContent = metadata?.html;
+
+    if (!htmlContent) {
+      // Default Professional Wrapper for plain messages
+      htmlContent = `
+        <div style="font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f4f7fa; padding: 40px 10px;">
+          <div style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08);">
+            <div style="background: linear-gradient(135deg, ${SCHOOL_CONFIG.COLOR.PRIMARY} 0%, ${SCHOOL_CONFIG.COLOR.SECONDARY} 100%); padding: 30px 40px;">
+              <h2 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 700;">${notification.title}</h2>
+              <p style="color: rgba(255,255,255,0.8); margin: 5px 0 0 0; font-size: 14px;">${SCHOOL_CONFIG.NAME}</p>
+            </div>
+            <div style="padding: 40px;">
+              <div style="font-size: 16px; color: #334155; line-height: 1.6; margin-bottom: 30px;">
+                ${notification.message.replace(/\n/g, '<br>')}
+              </div>
+              <div style="text-align: center;">
+                <a href="${SCHOOL_CONFIG.WEB_URL}" style="display: inline-block; background-color: ${SCHOOL_CONFIG.COLOR.PRIMARY}; color: #ffffff; padding: 14px 30px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">Buka Aplikasi</a>
+              </div>
+            </div>
+            <div style="background-color: #f1f5f9; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+              <p style="font-size: 12px; color: #94a3b8; margin: 0;">&copy; ${new Date().getFullYear()} ${SCHOOL_CONFIG.NAME}. Semua hak cipta dilindungi.</p>
+            </div>
+          </div>
+        </div>
+      `;
+    }
 
     await this.transporter.sendMail({
-      from: process.env.FROM_EMAIL || `"School System" <noreply@school.com>`,
+      from: process.env.FROM_EMAIL || `"${SCHOOL_CONFIG.NAME}" <noreply@school.com>`,
       to: notification.recipientEmail,
       subject: notification.title,
       text: notification.message,

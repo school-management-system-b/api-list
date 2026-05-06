@@ -1,5 +1,5 @@
 export const SCHOOL_CONFIG = {
-  NAME: "SMP Negeri 1 Contoh",
+  NAME: "SMAN 1 Berbek",
   APP_NAME: "Sistem Informasi Siswa (SIS)",
   WEB_URL: "https://web-gamma-woad-39.vercel.app/login",
   COLOR: {
