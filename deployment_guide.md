@@ -24,7 +24,7 @@ This guide explains how to deploy your microservices architecture to Vercel and 
 
 ## 3. Step-by-Step Deployment
 
-You will deploy each service as a separate **Vercel Project** linked to the same GitHub repository, but with a different **Root Directory**.
+You will deploy each service as a separate **Vercel Project** linked to the same GitHub repository, but with a different **Root Directory**..
 
 ### Step 1: Deploy Core Services First
 
