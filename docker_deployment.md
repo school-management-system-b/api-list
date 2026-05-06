@@ -34,7 +34,7 @@ Expected output: All 11 services should be **UP**
 ### 3. View Logs
 
 ```bash
-# All service
+# All services
 docker-compose logs -f
 
 # Specific service
