@@ -86,9 +86,11 @@ export const createStudent = async (req: Request, res: Response) => {
   const classInfo = await prisma.class.findUnique({ where: { id: value.classId } });
   if (!classInfo) return sendError(res, 400, 'Invalid classId');
 
-  // Provide defaults for missing required fields (similar to bulk import)
+  // Destructure fields that are not in the database model
+  const { createAccount, email: studentEmail, ...cleanValue } = value;
+
   const studentData = {
-    ...value,
+    ...cleanValue,
     nisn: value.nisn || value.nis || `NISN-${Date.now()}`,
     birthPlace: value.birthPlace || 'Unknown',
     birthDate: value.birthDate || new Date(),
@@ -121,14 +123,14 @@ export const createStudent = async (req: Request, res: Response) => {
   });
 
   // Handle Automatic Account Creation
-  if (req.body.createAccount && req.body.email) {
+  if (createAccount && studentEmail) {
     try {
       const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
       const internalSecret = process.env.INTERNAL_SECRET || 'change-this-to-a-strong-secret-in-production';
       
       const authResponse = await axios.post(`${authServiceUrl}/api/v1/auth/users`, {
         username: studentData.nis, // Use NIS as username
-        email: req.body.email,
+        email: studentEmail,
         name: studentData.name,
         roleCode: 'SISWA'
       }, {
