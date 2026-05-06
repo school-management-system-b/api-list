@@ -69,7 +69,7 @@ model CategoryTemplate {
   categories    Json          // Array of category objects
   isDefault     Boolean       @default(false)
   createdBy     String
-  createdAt     DateTime      @now()
+  createdAt     DateTime      @default(now())
   
   @@map("category_templates")
 }
