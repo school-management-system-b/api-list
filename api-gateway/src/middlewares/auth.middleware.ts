@@ -22,7 +22,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
       const internalSecret = process.env.INTERNAL_SECRET || 'change-this-to-a-strong-secret-in-production';
       
-      const response = await axios.post(`${authServiceUrl}/api/v1/internal/token/check`, { token }, {
+      const response = await axios.post(`${authServiceUrl}/api/v1/auth/internal/token/check`, { token }, {
         headers: { 'x-internal-secret': internalSecret }
       });
       
