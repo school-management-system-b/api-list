@@ -6,6 +6,7 @@ export const internalAuth = (req: Request, res: Response, next: NextFunction) =>
   const expectedSecret = process.env.INTERNAL_SECRET || 'change-this-to-a-strong-secret-in-production';
 
   if (!secret || secret !== expectedSecret) {
+    console.warn(`Internal Auth Failed: ${!secret ? 'Missing secret' : 'Secret mismatch'}`);
     return sendError(res, 401, 'Unauthorized internal access');
   }
 

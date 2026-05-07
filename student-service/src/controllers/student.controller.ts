@@ -128,7 +128,11 @@ export const createStudent = async (req: Request, res: Response) => {
       const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
       const internalSecret = process.env.INTERNAL_SECRET || 'change-this-to-a-strong-secret-in-production';
       
-      const authResponse = await axios.post(`${authServiceUrl}/api/v1/auth/internal/users`, {
+      // Ensure URL is clean (handle trailing slashes and prefix)
+      let baseUrl = authServiceUrl.endsWith('/') ? authServiceUrl.slice(0, -1) : authServiceUrl;
+      const fullUrl = `${baseUrl}/api/v1/auth/internal/users`;
+      
+      const authResponse = await axios.post(fullUrl, {
         username: studentData.nis, // Use NIS as username
         email: studentEmail,
         name: studentData.name,
@@ -145,7 +149,12 @@ export const createStudent = async (req: Request, res: Response) => {
         });
       }
     } catch (err: any) {
-      console.error('Failed to create auth account for student:', err.message);
+      const errorDetail = err.response?.data?.message || err.message;
+      console.error(`Failed to create auth account for student ${studentData.name}:`, errorDetail);
+      if (err.response) {
+        console.error('Response Status:', err.response.status);
+        console.error('Response Data:', JSON.stringify(err.response.data));
+      }
       // We don't fail the whole request because the student was already created
     }
   }
@@ -445,7 +454,10 @@ export const bulkCreateStudents = async (req: Request, res: Response) => {
 
       // 3. Create Account if email provided
       if (studentData.createAccount && studentData.email) {
-        await axios.post(`${authServiceUrl}/api/v1/auth/internal/users`, {
+        let baseUrl = authServiceUrl.endsWith('/') ? authServiceUrl.slice(0, -1) : authServiceUrl;
+        const fullUrl = `${baseUrl}/api/v1/auth/internal/users`;
+
+        await axios.post(fullUrl, {
           username: studentData.nis,
           email: studentData.email,
           name: studentData.nama,
@@ -459,7 +471,10 @@ export const bulkCreateStudents = async (req: Request, res: Response) => {
               data: { userId: authRes.data.data.id }
             });
           }
-        }).catch(err => console.error(`Bulk: Failed to create account for ${studentData.nama}:`, err.message));
+        }).catch(err => {
+          const errorDetail = err.response?.data?.message || err.message;
+          console.error(`Bulk: Failed to create account for ${studentData.nama}:`, errorDetail);
+        });
       }
 
       results.push({ success: true, id: student.id, name: student.name });
