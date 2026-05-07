@@ -1,4 +1,4 @@
-# Docker Compose Quick Reference
+# Docker Compose Quick References
 
 ## Production (Recommended)
 
