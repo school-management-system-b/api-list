@@ -128,7 +128,7 @@ export const createStudent = async (req: Request, res: Response) => {
       const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
       const internalSecret = process.env.INTERNAL_SECRET || 'change-this-to-a-strong-secret-in-production';
       
-      const authResponse = await axios.post(`${authServiceUrl}/api/v1/auth/users`, {
+      const authResponse = await axios.post(`${authServiceUrl}/api/v1/auth/internal/users`, {
         username: studentData.nis, // Use NIS as username
         email: studentEmail,
         name: studentData.name,
@@ -445,7 +445,7 @@ export const bulkCreateStudents = async (req: Request, res: Response) => {
 
       // 3. Create Account if email provided
       if (studentData.createAccount && studentData.email) {
-        await axios.post(`${authServiceUrl}/api/v1/auth/users`, {
+        await axios.post(`${authServiceUrl}/api/v1/auth/internal/users`, {
           username: studentData.nis,
           email: studentData.email,
           name: studentData.nama,

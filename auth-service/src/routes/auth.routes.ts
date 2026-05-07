@@ -239,6 +239,7 @@ import { internalAuth } from '../middlewares/internal.middleware';
 router.get('/authorize', authenticate, authorizeSession);
 
 router.get('/internal/user/:id', internalAuth, getUserForInternal);
+router.post('/internal/users', internalAuth, userController.createUser);
 router.delete('/internal/user/:id', internalAuth, deleteUserInternal);
 router.post('/internal/users/bulk-delete', internalAuth, bulkDeleteUsersInternal);
 router.post('/internal/token/check', internalAuth, checkTokenBlacklist);
