@@ -271,6 +271,22 @@ export const syncPoints = async (req: Request, res: Response) => {
   return sendResponse(res, 200, true, 'Points synced successfully');
 };
 
+export const getClassByWali = async (req: Request, res: Response) => {
+  const { waliId } = req.params;
+  const item = await prisma.class.findFirst({
+    where: { waliKelasId: waliId, deletedAt: null },
+  });
+  return sendResponse(res, 200, true, 'Class found', item);
+};
+
+export const getStudentsByParent = async (req: Request, res: Response) => {
+  const { parentId } = req.params;
+  const items = await prisma.student.findMany({
+    where: { parentId, deletedAt: null },
+  });
+  return sendResponse(res, 200, true, 'Students found', items);
+};
+
 export const deleteStudent = async (req: Request, res: Response) => {
   const { id } = req.params;
 
@@ -291,6 +307,19 @@ export const deleteStudent = async (req: Request, res: Response) => {
       data: { currentTotal: { decrement: 1 } },
     }),
   ]);
+
+  // Cascading delete to User Service (which will cascade to Auth Service)
+  if (student.userId) {
+    try {
+      const userServiceUrl = process.env.USER_SERVICE_URL || 'http://localhost:3002';
+      const internalSecret = process.env.INTERNAL_SECRET || 'change-this-to-a-strong-secret-in-production';
+      await axios.delete(`${userServiceUrl}/api/v1/internal/users/${student.userId}`, {
+        headers: { 'x-internal-secret': internalSecret }
+      });
+    } catch (err: any) {
+      console.error(`Failed to cascade delete for user ${student.userId}:`, err.message);
+    }
+  }
 
   return sendResponse(res, 200, true, 'Student deleted successfully');
 };
@@ -511,7 +540,7 @@ export const bulkDeleteStudents = async (req: Request, res: Response) => {
   try {
     const students = await prisma.student.findMany({
       where: { id: { in: ids }, deletedAt: null },
-      select: { id: true, classId: true }
+      select: { id: true, classId: true, userId: true }
     });
 
     if (students.length === 0) return sendResponse(res, 200, true, 'No active students found to delete');
@@ -520,6 +549,8 @@ export const bulkDeleteStudents = async (req: Request, res: Response) => {
     students.forEach(s => {
       classCountMap[s.classId] = (classCountMap[s.classId] || 0) + 1;
     });
+
+    const userIds = students.map(s => (s as any).userId).filter(Boolean);
 
     await prisma.$transaction([
       prisma.student.updateMany({
@@ -537,6 +568,21 @@ export const bulkDeleteStudents = async (req: Request, res: Response) => {
         })
       )
     ]);
+
+    // Cascading bulk delete to User Service
+    if (userIds.length > 0) {
+      try {
+        const userServiceUrl = process.env.USER_SERVICE_URL || 'http://localhost:3002';
+        const internalSecret = process.env.INTERNAL_SECRET || 'change-this-to-a-strong-secret-in-production';
+        await axios.post(`${userServiceUrl}/api/v1/internal/users/bulk-delete`, {
+          ids: userIds
+        }, {
+          headers: { 'x-internal-secret': internalSecret }
+        });
+      } catch (err: any) {
+        console.error(`Failed to cascade bulk delete:`, err.message);
+      }
+    }
 
     return sendResponse(res, 200, true, `${students.length} students deleted successfully`);
   } catch (error: any) {

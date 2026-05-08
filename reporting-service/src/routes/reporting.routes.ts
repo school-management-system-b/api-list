@@ -8,6 +8,7 @@ const router = Router();
 router.get('/dashboard/summary', analyticsController.getDashboardSummary);
 router.get('/trends/violations', analyticsController.getViolationTrends);
 router.get('/trends/attendance', analyticsController.getAttendanceTrends);
+router.get('/dashboard/top-reporters', analyticsController.getTopReportingTeachers);
 
 // Report Generation
 router.post('/generate', reportController.generateReport);

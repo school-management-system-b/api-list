@@ -10,7 +10,10 @@ export const getViolations = async (req: Request, res: Response) => {
   const studentId = req.query.studentId as string;
   const status = req.query.status as any;
 
-  const where = {
+  const user = (req as any).user;
+  const userRole = user?.roles?.[0];
+
+  const where: any = {
     deletedAt: null,
     ...(studentId && { studentId }),
     ...(status && { status }),
@@ -22,6 +25,35 @@ export const getViolations = async (req: Request, res: Response) => {
       ],
     }),
   };
+
+  // RBAC Data Filtering
+  if (userRole === 'WALIKELAS') {
+    const studentServiceUrl = process.env.STUDENT_SERVICE_URL || 'http://localhost:3003';
+    const headers = { 'x-internal-secret': process.env.INTERNAL_SECRET };
+    try {
+      const classRes = await axios.get(`${studentServiceUrl}/api/v1/internal/classes/by-wali/${user.id}`, { headers });
+      if (classRes.data.data) {
+        where.studentClass = classRes.data.data.name;
+      } else {
+        where.id = 'none'; // No class assigned
+      }
+    } catch (e) {
+      where.id = 'none';
+    }
+  } else if (userRole === 'ORANGTUA') {
+    const studentServiceUrl = process.env.STUDENT_SERVICE_URL || 'http://localhost:3003';
+    const headers = { 'x-internal-secret': process.env.INTERNAL_SECRET };
+    try {
+      const studentsRes = await axios.get(`${studentServiceUrl}/api/v1/internal/students/by-parent/${user.id}`, { headers });
+      const studentIds = studentsRes.data.data.map((s: any) => s.id);
+      where.studentId = { in: studentIds };
+    } catch (e) {
+      where.id = 'none';
+    }
+  } else if (userRole === 'SISWA') {
+    // Siswa only sees their own
+    where.studentId = user.id;
+  }
 
   const [items, total] = await Promise.all([
     prisma.violation.findMany({
@@ -65,9 +97,17 @@ export const createViolation = async (req: Request, res: Response) => {
     const student = studentRes.data.data;
     const category = categoryRes.data.data;
 
+    const userRole = (req as any).user?.roles?.[0] || 'GURUMAPEL';
+    let initialStatus: 'PENDING' | 'APPROVED_WALI' = 'PENDING';
+    
+    if (['SUPERADMIN', 'ADMIN', 'BK', 'WALIKELAS'].includes(userRole)) {
+      initialStatus = 'APPROVED_WALI';
+    }
+
     const violation = await prisma.violation.create({
       data: {
         ...value,
+        status: initialStatus,
         studentName: student.name,
         studentNisn: student.nisn,
         studentClass: student.className,
@@ -77,21 +117,27 @@ export const createViolation = async (req: Request, res: Response) => {
         points: category.defaultPoints || value.points || 0,
         reportedBy: (req as any).user?.id || 'SYSTEM',
         reportedByName: (req as any).user?.name || 'System User',
-        reporterRole: (req as any).user?.roles?.[0] || 'GURUMAPEL',
+        reporterRole: userRole,
         createdBy: (req as any).user?.id || 'SYSTEM',
+        ...(initialStatus === 'APPROVED_WALI' && {
+          approvedByWaliAt: new Date(),
+          approvedByWaliBy: (req as any).user?.id || 'SYSTEM',
+          approvedByWaliName: (req as any).user?.name || 'System User',
+          waliKelasNotes: 'Auto-approved by reporter role'
+        })
       },
     });
 
     await prisma.violationApprovalHistory.create({
       data: {
         violationId: violation.id,
-        action: 'SUBMIT',
+        action: initialStatus === 'APPROVED_WALI' ? 'APPROVE_WALI' : 'SUBMIT',
         fromStatus: 'PENDING',
-        toStatus: 'PENDING',
+        toStatus: initialStatus,
         approverUserId: (req as any).user?.id || 'SYSTEM',
         approverName: (req as any).user?.name || 'System User',
-        approverRole: (req as any).user?.roles?.[0] || 'GURUMAPEL',
-        notes: 'Initial record submission',
+        approverRole: userRole,
+        notes: initialStatus === 'APPROVED_WALI' ? 'Auto-approved by reporter role' : 'Initial record submission',
       },
     });
 

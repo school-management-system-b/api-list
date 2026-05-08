@@ -17,3 +17,19 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
     return sendError(res, 401, 'Unauthorized: Invalid or expired token');
   }
 };
+
+export const authorize = (roles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const user = (req as any).user;
+    if (!user) {
+      return sendError(res, 401, 'Unauthorized: User not authenticated');
+    }
+
+    const hasRole = user.roles?.some((role: string) => roles.includes(role));
+    if (!hasRole) {
+      return sendError(res, 403, 'Forbidden: You do not have permission to access this resource');
+    }
+
+    next();
+  };
+};

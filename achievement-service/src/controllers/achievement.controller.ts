@@ -10,7 +10,10 @@ export const getAchievements = async (req: Request, res: Response) => {
   const studentId = req.query.studentId as string;
   const status = req.query.status as any;
 
-  const where = {
+  const user = (req as any).user;
+  const userRole = user?.roles?.[0];
+
+  const where: any = {
     deletedAt: null,
     ...(studentId && { studentId }),
     ...(status && { status }),
@@ -21,6 +24,34 @@ export const getAchievements = async (req: Request, res: Response) => {
       ],
     }),
   };
+
+  // RBAC Data Filtering
+  if (userRole === 'WALIKELAS') {
+    const studentServiceUrl = process.env.STUDENT_SERVICE_URL || 'http://localhost:3003';
+    const headers = { 'x-internal-secret': process.env.INTERNAL_SECRET };
+    try {
+      const classRes = await axios.get(`${studentServiceUrl}/api/v1/internal/classes/by-wali/${user.id}`, { headers });
+      if (classRes.data.data) {
+        where.studentClass = classRes.data.data.name;
+      } else {
+        where.id = 'none';
+      }
+    } catch (e) {
+      where.id = 'none';
+    }
+  } else if (userRole === 'ORANGTUA') {
+    const studentServiceUrl = process.env.STUDENT_SERVICE_URL || 'http://localhost:3003';
+    const headers = { 'x-internal-secret': process.env.INTERNAL_SECRET };
+    try {
+      const studentsRes = await axios.get(`${studentServiceUrl}/api/v1/internal/students/by-parent/${user.id}`, { headers });
+      const studentIds = studentsRes.data.data.map((s: any) => s.id);
+      where.studentId = { in: studentIds };
+    } catch (e) {
+      where.id = 'none';
+    }
+  } else if (userRole === 'SISWA') {
+    where.studentId = user.id;
+  }
 
   const [items, total] = await Promise.all([
     prisma.achievement.findMany({
@@ -68,9 +99,17 @@ export const createAchievement = async (req: Request, res: Response) => {
     const basePoints = category.basePoints || 50;
     const points = basePoints; // Should use PointsCalculationService depending on level/rank
 
+    const userRole = (req as any).user?.roles?.[0] || 'GURUMAPEL';
+    let initialStatus: 'PENDING' | 'APPROVED_WALI' = 'PENDING';
+    
+    if (['SUPERADMIN', 'ADMIN', 'BK', 'WALIKELAS'].includes(userRole)) {
+      initialStatus = 'APPROVED_WALI';
+    }
+
     const achievement = await prisma.achievement.create({
       data: {
         ...value,
+        status: initialStatus,
         studentName: student.name,
         studentNisn: student.nisn,
         studentClass: student.className,
@@ -81,21 +120,26 @@ export const createAchievement = async (req: Request, res: Response) => {
         points,
         reportedBy: (req as any).user?.id || 'SYSTEM',
         reportedByName: (req as any).user?.name || 'System User',
-        reporterRole: (req as any).user?.roles?.[0] || 'GURUMAPEL',
+        reporterRole: userRole,
         createdBy: (req as any).user?.id || 'SYSTEM',
+        ...(initialStatus === 'APPROVED_WALI' && {
+          approvedAt: new Date(),
+          approvedBy: (req as any).user?.id || 'SYSTEM',
+          approvedByName: (req as any).user?.name || 'System User',
+        })
       },
     });
 
     await prisma.achievementApprovalHistory.create({
       data: {
         achievementId: achievement.id,
-        action: 'SUBMIT',
+        action: initialStatus === 'APPROVED_WALI' ? 'APPROVE_WALI' : 'SUBMIT',
         fromStatus: 'PENDING',
-        toStatus: 'PENDING',
+        toStatus: initialStatus,
         approverUserId: (req as any).user?.id || 'SYSTEM',
         approverName: (req as any).user?.name || 'System User',
-        approverRole: (req as any).user?.roles?.[0] || 'GURUMAPEL',
-        notes: 'Achievement recorded and submitted for approval',
+        approverRole: userRole,
+        notes: initialStatus === 'APPROVED_WALI' ? 'Auto-approved by reporter role' : 'Achievement recorded and submitted for approval',
       },
     });
 
@@ -152,4 +196,28 @@ export const deleteAchievement = async (req: Request, res: Response) => {
   });
 
   return sendResponse(res, 200, true, 'Achievement deleted successfully');
+};
+export const getTopReporters = async (req: Request, res: Response) => {
+  const limit = parseInt(req.query.limit as string) || 5;
+
+  const reporters = await prisma.achievement.groupBy({
+    by: ['reportedBy', 'reportedByName', 'reporterRole'],
+    _count: {
+      id: true,
+    },
+    orderBy: {
+      _count: {
+        id: 'desc',
+      },
+    },
+    take: limit,
+    where: { deletedAt: null },
+  });
+
+  return sendResponse(res, 200, true, 'Top achievement reporters retrieved', reporters.map(r => ({
+    userId: r.reportedBy,
+    name: r.reportedByName,
+    role: r.reporterRole,
+    count: r._count.id
+  })));
 };

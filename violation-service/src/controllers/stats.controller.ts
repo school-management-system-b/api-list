@@ -6,11 +6,20 @@ export const getStatsSummary = async (req: Request, res: Response) => {
   const academicYear = req.query.academicYear as string;
   const semester = parseInt(req.query.semester as string);
 
-  const where = {
+  const startDate = req.query.startDate as string;
+  const endDate = req.query.endDate as string;
+
+  const where: any = {
     deletedAt: null,
     ...(academicYear && { academicYear }),
     ...(semester && { semester }),
   };
+
+  if (startDate || endDate) {
+    where.violationDate = {};
+    if (startDate) where.violationDate.gte = new Date(startDate);
+    if (endDate) where.violationDate.lte = new Date(endDate);
+  }
 
   const total = await prisma.violation.count({ where });
   const byStatus = await prisma.violation.groupBy({
@@ -31,6 +40,14 @@ export const getStatsSummary = async (req: Request, res: Response) => {
     _count: true,
   });
 
+  const byCategory = await prisma.violation.groupBy({
+    by: ['categoryName'],
+    where,
+    _count: true,
+    orderBy: { _count: { id: 'desc' } },
+    take: 5,
+  });
+
   return sendResponse(res, 200, true, 'Statistics summary retrieved', {
     total,
     byStatus: byStatus.reduce((acc: any, curr) => ({ ...acc, [curr.status]: curr._count }), {}),
@@ -42,6 +59,7 @@ export const getStatsSummary = async (req: Request, res: Response) => {
       (acc: any, curr) => ({ ...acc, [curr.studentClass]: curr._count }),
       {}
     ),
+    byCategory: byCategory.map(c => ({ name: c.categoryName, count: c._count })),
   });
 };
 
@@ -58,4 +76,28 @@ export const getRepeatOffenders = async (req: Request, res: Response) => {
   });
 
   return sendResponse(res, 200, true, 'Repeat offenders retrieved', offenders);
+};
+export const getTopReporters = async (req: Request, res: Response) => {
+  const limit = parseInt(req.query.limit as string) || 5;
+
+  const reporters = await prisma.violation.groupBy({
+    by: ['reportedBy', 'reportedByName', 'reporterRole'],
+    _count: {
+      id: true,
+    },
+    orderBy: {
+      _count: {
+        id: 'desc',
+      },
+    },
+    take: limit,
+    where: { deletedAt: null },
+  });
+
+  return sendResponse(res, 200, true, 'Top reporters retrieved', reporters.map(r => ({
+    userId: r.reportedBy,
+    name: r.reportedByName,
+    role: r.reporterRole,
+    count: r._count.id
+  })));
 };

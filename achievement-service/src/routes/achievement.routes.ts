@@ -16,12 +16,14 @@ router.put('/:id', authenticate, achievementController.updateAchievement);
 
 router.delete('/:id', authenticate, achievementController.deleteAchievement);
 
-router.post('/:id/approve', authenticate, authorize(['BK']), approvalController.approveAchievement);
+router.post('/:id/approve-wali', authenticate, authorize(['WALIKELAS', 'BK', 'ADMIN', 'SUPERADMIN']), approvalController.approveWaliKelas);
+router.post('/:id/approve-bk', authenticate, authorize(['BK', 'ADMIN', 'SUPERADMIN']), approvalController.approveBK);
 
-router.post('/:id/reject', authenticate, authorize(['BK']), approvalController.rejectAchievement);
+router.post('/:id/reject', authenticate, authorize(['WALIKELAS', 'BK', 'ADMIN', 'SUPERADMIN']), approvalController.rejectAchievement);
 
 router.get('/hall-of-fame', authenticate, recognitionController.getHallOfFame);
 
 router.get('/stats/summary', authenticate, recognitionController.getStatsSummary);
+router.get('/stats/top-reporters', authenticate, achievementController.getTopReporters);
 
 export default router;

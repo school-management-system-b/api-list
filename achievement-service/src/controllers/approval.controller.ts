@@ -5,20 +5,59 @@ import { approveSchema, rejectSchema } from '../validators/achievement.validator
 
 import axios from 'axios';
 
-export const approveAchievement = async (req: Request, res: Response) => {
+export const approveWaliKelas = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { error, value } = approveSchema.validate(req.body); // Reusing approveSchema for notes
+  if (error) return sendError(res, 400, error.details[0].message);
+
+  const achievement = await prisma.achievement.findUnique({ where: { id } });
+  if (!achievement) return sendError(res, 404, 'Achievement not found');
+  if (achievement.status !== 'PENDING')
+    return sendError(res, 400, 'Achievement is not in PENDING status');
+
+  const updated = await prisma.achievement.update({
+    where: { id },
+    data: {
+      status: 'APPROVED_WALI',
+      approvedAt: new Date(),
+      approvedBy: (req as any).user.id,
+      approvedByName: (req as any).user.name,
+      bkNotes: value.notes, // Using bkNotes field for Wali notes as well or add waliNotes
+    },
+  });
+
+  await prisma.achievementApprovalHistory.create({
+    data: {
+      achievementId: id,
+      action: 'APPROVE_WALI',
+      fromStatus: 'PENDING',
+      toStatus: 'APPROVED_WALI',
+      approverUserId: (req as any).user.id,
+      approverName: (req as any).user.name,
+      approverRole: (req as any).user.roles?.[0] || 'WALIKELAS',
+      notes: value.notes,
+    },
+  });
+
+  return sendResponse(res, 200, true, 'Achievement approved by Wali Kelas', updated);
+};
+
+export const approveBK = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { error, value } = approveSchema.validate(req.body);
   if (error) return sendError(res, 400, error.details[0].message);
 
   const achievement = await prisma.achievement.findUnique({ where: { id } });
   if (!achievement) return sendError(res, 404, 'Achievement not found');
-  if (achievement.status !== 'PENDING')
-    return sendError(res, 400, 'Achievement is already processed');
+  
+  if (achievement.status !== 'APPROVED_WALI') {
+    return sendError(res, 400, 'Achievement must be approved by Wali Kelas first');
+  }
 
   const updated = await prisma.achievement.update({
     where: { id },
     data: {
-      status: 'APPROVED',
+      status: 'APPROVED_BK',
       approvedAt: new Date(),
       approvedBy: (req as any).user.id,
       approvedByName: (req as any).user.name,
@@ -32,9 +71,9 @@ export const approveAchievement = async (req: Request, res: Response) => {
   await prisma.achievementApprovalHistory.create({
     data: {
       achievementId: id,
-      action: 'APPROVE',
-      fromStatus: 'PENDING',
-      toStatus: 'APPROVED',
+      action: 'APPROVE_BK',
+      fromStatus: 'APPROVED_WALI',
+      toStatus: 'APPROVED_BK',
       approverUserId: (req as any).user.id,
       approverName: (req as any).user.name,
       approverRole: (req as any).user.roles?.[0] || 'BK',
@@ -77,14 +116,16 @@ export const approveAchievement = async (req: Request, res: Response) => {
 
   // Trigger notification
   await axios.post(`${notificationServiceUrl}/api/v1/internal/notifications`, {
-    userId: achievement.studentId, // In real app, might want to lookup parent ID
+    userId: achievement.studentId, 
     type: 'ACHIEVEMENT_APPROVED',
     title: 'Prestasi Disetujui',
-    message: `Selamat! Prestasi ${achievement.title} oleh ${achievement.studentName} telah disetujui.`,
-    data: { achievementId: achievement.id }
+    message: `Selamat! Prestasi ${achievement.title} oleh ${achievement.studentName} telah disetujui (Final).`,
+    data: { achievementId: achievement.id },
+    category: 'ACHIEVEMENT',
+    channels: ['IN_APP', 'EMAIL']
   }, { headers }).catch((e: any) => console.error('Failed to send notification', e.message));
 
-  return sendResponse(res, 200, true, 'Achievement approved successfully', updated);
+  return sendResponse(res, 200, true, 'Achievement approved by BK (Final)', updated);
 };
 
 export const rejectAchievement = async (req: Request, res: Response) => {
