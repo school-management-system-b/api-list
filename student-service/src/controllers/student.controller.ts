@@ -132,13 +132,8 @@ export const createStudent = async (req: Request, res: Response) => {
       let baseUrl = authServiceUrl.endsWith('/') ? authServiceUrl.slice(0, -1) : authServiceUrl;
       const fullUrl = `${baseUrl}/api/v1/auth/internal/users`;
       
-      // Generate username from name: "Akmal Hafid" -> "akmal.hafid"
-      const generatedUsername = studentData.name
-        .toLowerCase()
-        .trim()
-        .replace(/\s+/g, '.')
-        .replace(/[^a-z0-9.]/g, '') + 
-        (studentData.nis ? `.${studentData.nis.slice(-4)}` : ''); // Append last 4 digits of NIS for uniqueness
+      // Use NIS as username for students
+      const generatedUsername = studentData.nis || studentData.name.toLowerCase().replace(/\s+/g, '.') + '.' + Date.now().toString().slice(-4);
       
       const authResponse = await axios.post(fullUrl, {
         username: generatedUsername,
@@ -539,12 +534,8 @@ export const bulkCreateStudents = async (req: Request, res: Response) => {
           const baseUrl = authServiceUrl.endsWith('/') ? authServiceUrl.slice(0, -1) : authServiceUrl;
           const fullUrl = `${baseUrl}/api/v1/auth/internal/users`;
 
-          const generatedUsername = studentData.nama
-            .toLowerCase()
-            .trim()
-            .replace(/\s+/g, '.')
-            .replace(/[^a-z0-9.]/g, '') + 
-            (studentData.nis ? `.${studentData.nis.toString().slice(-4)}` : '');
+          // Use NIS as username for students
+          const generatedUsername = studentData.nis?.toString() || studentData.nama.toLowerCase().replace(/\s+/g, '.') + '.' + Date.now().toString().slice(-4);
 
           const authRes = await axios.post(fullUrl, {
             username: generatedUsername,
