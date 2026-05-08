@@ -76,7 +76,9 @@ export const getUsers = async (req: Request, res: Response) => {
  */
 export const getUserById = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const user = await userService.findById(id);
+  // Try finding by profile ID first, then by userId
+  let user = await userService.findById(id);
+  if (!user) user = await userService.findByUserId(id);
 
   if (!user) return sendError(res, 404, 'User profile not found');
 
