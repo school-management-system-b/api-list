@@ -442,8 +442,6 @@ export const assignWaliKelas = async (req: Request, res: Response) => {
 };
 
 export const bulkCreateStudents = async (req: Request, res: Response) => {
-
-
   const { students } = req.body;
   if (!Array.isArray(students)) return sendError(res, 400, 'Invalid payload: students must be an array');
 
@@ -453,16 +451,51 @@ export const bulkCreateStudents = async (req: Request, res: Response) => {
 
   for (const studentData of students) {
     try {
-      // 1. Find class by name or default to first available if not found (simple logic for now)
+      // 1. Find class by name or code
       let classId = studentData.classId;
-      if (!classId && studentData.kelas) {
-        const classInfo = await prisma.class.findFirst({ where: { name: studentData.kelas } });
-        classId = classInfo?.id;
+      let classInfo = null;
+
+      if (classId) {
+        classInfo = await prisma.class.findUnique({ where: { id: classId } });
+      } else if (studentData.kelas) {
+        // Try exact name match first, then exact code match
+        classInfo = await prisma.class.findFirst({
+          where: {
+            OR: [
+              { name: { equals: studentData.kelas, mode: 'insensitive' } },
+              { code: { equals: studentData.kelas, mode: 'insensitive' } }
+            ]
+          }
+        });
       }
 
-      if (!classId) {
-        results.push({ success: false, name: studentData.nama, message: 'Class not found' });
+      if (!classInfo) {
+        results.push({ 
+          success: false, 
+          name: studentData.nama || 'Unknown', 
+          message: `Class "${studentData.kelas}" not found` 
+        });
         continue;
+      }
+
+      // Check for duplicate NIS/NISN
+      if (studentData.nis) {
+        const existing = await prisma.student.findFirst({
+          where: { 
+            OR: [
+              { nis: studentData.nis.toString() },
+              { nisn: (studentData.nisn || studentData.nis).toString() }
+            ]
+          }
+        });
+        if (existing) {
+          results.push({ 
+            success: false, 
+            name: studentData.nama, 
+            message: `NIS/NISN ${studentData.nis} already exists` 
+          });
+          continue;
+        }
       }
 
       // 2. Create student
@@ -472,64 +505,90 @@ export const bulkCreateStudents = async (req: Request, res: Response) => {
           nis: studentData.nis?.toString(),
           nisn: (studentData.nisn || studentData.nis)?.toString() || `NISN-${Date.now()}`,
           gender: studentData.gender === 'P' ? 'FEMALE' : 'MALE',
-          classId: classId,
-          className: studentData.kelas,
-          classLevel: '10', // Default
+          classId: classInfo.id,
+          className: classInfo.name,
+          classLevel: classInfo.level || '10',
+          classMajor: classInfo.major,
+          waliKelasId: classInfo.waliKelasId,
+          waliKelasName: classInfo.waliKelasName,
           birthPlace: studentData.tempat_lahir || 'Unknown',
           birthDate: studentData.tanggal_lahir ? new Date(studentData.tanggal_lahir) : new Date(),
-          religion: 'ISLAM', // Default
+          religion: 'ISLAM',
           address: studentData.alamat || 'Unknown',
           city: studentData.kota || 'Unknown',
           province: studentData.provinsi || 'Unknown',
-          academicYear: '2024/2025', // Default
-          entryYear: '2024', // Default
+          academicYear: classInfo.academicYear || '2024/2025',
+          entryYear: '2024',
           entryDate: new Date(),
           createdBy: (req as any).user?.id || 'SYSTEM',
         }
       });
 
+      // Update class total
+      await prisma.class.update({
+        where: { id: classInfo.id },
+        data: { currentTotal: { increment: 1 } }
+      });
+
+      let accountCreated = false;
+      let accountError = null;
 
       // 3. Create Account if email provided
       if (studentData.createAccount && studentData.email) {
-        let baseUrl = authServiceUrl.endsWith('/') ? authServiceUrl.slice(0, -1) : authServiceUrl;
-        const fullUrl = `${baseUrl}/api/v1/auth/internal/users`;
+        try {
+          const baseUrl = authServiceUrl.endsWith('/') ? authServiceUrl.slice(0, -1) : authServiceUrl;
+          const fullUrl = `${baseUrl}/api/v1/auth/internal/users`;
 
-        // Generate username from name
-        const generatedUsername = studentData.nama
-          .toLowerCase()
-          .trim()
-          .replace(/\s+/g, '.')
-          .replace(/[^a-z0-9.]/g, '') + 
-          (studentData.nis ? `.${studentData.nis.toString().slice(-4)}` : '');
+          const generatedUsername = studentData.nama
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, '.')
+            .replace(/[^a-z0-9.]/g, '') + 
+            (studentData.nis ? `.${studentData.nis.toString().slice(-4)}` : '');
 
-        await axios.post(fullUrl, {
-          username: generatedUsername,
-          email: studentData.email,
-          name: studentData.nama,
-          roleCode: 'SISWA'
-        }, {
-          headers: { 'x-internal-secret': internalSecret }
-        }).then(async (authRes) => {
+          const authRes = await axios.post(fullUrl, {
+            username: generatedUsername,
+            email: studentData.email,
+            name: studentData.nama,
+            roleCode: 'SISWA'
+          }, {
+            headers: { 'x-internal-secret': internalSecret }
+          });
+
           if (authRes.data.success) {
             await prisma.student.update({
               where: { id: student.id },
               data: { userId: authRes.data.data.id }
             });
+            accountCreated = true;
           }
-        }).catch(err => {
-          const errorDetail = err.response?.data?.message || err.message;
-          console.error(`Bulk: Failed to create account for ${studentData.nama}:`, errorDetail);
-        });
+        } catch (err: any) {
+          accountError = err.response?.data?.message || err.message;
+          console.error(`Bulk: Failed to create account for ${studentData.nama}:`, accountError);
+        }
       }
 
-      results.push({ success: true, id: student.id, name: student.name });
+      results.push({ 
+        success: true, 
+        id: student.id, 
+        name: student.name, 
+        accountCreated,
+        accountError
+      });
     } catch (err: any) {
       results.push({ success: false, name: studentData.nama, message: err.message });
     }
   }
 
-  return sendResponse(res, 200, true, 'Bulk import completed', { results });
+  const successCount = results.filter(r => r.success).length;
+  const failureCount = results.length - successCount;
+
+  return sendResponse(res, 200, true, `Bulk import completed: ${successCount} succeeded, ${failureCount} failed`, { 
+    results,
+    summary: { total: students.length, success: successCount, failure: failureCount }
+  });
 };
+
 
 export const bulkDeleteStudents = async (req: Request, res: Response) => {
   const { ids } = req.body;
