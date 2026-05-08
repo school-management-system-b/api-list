@@ -39,6 +39,7 @@ model UserProfile {
   employeeType EmployeeType?
   department   String?
   position     String?
+  mapel        String?   // Subject taught (for GURU_MAPEL)
   joinDate     DateTime?
 
   // Document URLs

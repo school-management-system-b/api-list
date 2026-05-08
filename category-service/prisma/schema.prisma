@@ -132,9 +132,27 @@ model Class {
   @@map("classes")
 }
 
+model Subject {
+  id                String    @id @default(uuid())
+  code              String    @unique       // MAT, BIO, etc.
+  name              String                  // Matematika, Biologi
+  description       String?
+  
+  // Meta
+  isActive          Boolean   @default(true)
+  createdBy         String
+  createdAt         DateTime  @default(now())
+  updatedBy         String?
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+  
+  @@map("subjects")
+}
+
 enum CategoryType {
   VIOLATION
   ACHIEVEMENT
+  SUBJECT
 }
 
 enum ViolationSeverity {

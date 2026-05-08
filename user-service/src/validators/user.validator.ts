@@ -22,6 +22,7 @@ export const createUserSchema = Joi.object({
   employeeType: Joi.string().valid('PNS', 'PPPK', 'GTT', 'PTT', 'HONORER').optional(),
   department: Joi.string().max(100).optional(),
   position: Joi.string().max(100).optional(),
+  mapel: Joi.string().max(100).optional().allow(''),
   joinDate: Joi.date().optional(),
 });
 
@@ -49,6 +50,7 @@ export const updateUserSchema = Joi.object({
   employeeType: Joi.string().valid('PNS', 'PPPK', 'GTT', 'PTT', 'HONORER').optional(),
   department: Joi.string().max(100).optional(),
   position: Joi.string().max(100).optional(),
+  mapel: Joi.string().max(100).optional().allow(''),
   joinDate: Joi.date().optional(),
 });
 

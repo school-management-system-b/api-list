@@ -63,9 +63,11 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 // Routes
 import categoryRoutes from './routes/category.routes';
 import classRoutes from './routes/class.routes';
+import subjectRoutes from './routes/subject.routes';
 import internalRoutes from './routes/internal.routes';
 app.use('/api/v1/categories', categoryRoutes);
 app.use('/api/v1/classes', classRoutes);
+app.use('/api/v1/subjects', subjectRoutes);
 app.use('/api/v1/internal', internalRoutes);
 
 app.get('/', (req: Request, res: Response) => {

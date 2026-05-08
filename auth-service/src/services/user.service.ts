@@ -7,7 +7,7 @@ import { hashPassword } from './password.service';
 
 export class UserService {
   async createUser(data: any, createdBy: string) {
-    const { username, email, name, roleCode, nip_nis, phone } = data;
+    const { username, email, name, roleCode, nip_nis, phone, mapel } = data;
 
     // 1. Generate temporary password (Secure)
     const tempPassword = crypto.randomBytes(4).toString('hex') + 'A1!';
@@ -72,6 +72,7 @@ export class UserService {
         name: user.name,
         nip_nis: nip_nis,
         phone: phone,
+        mapel: mapel,
       }, { headers }).catch(err => logger.error('Failed to auto-create profile in User Service:', err.message));
 
       // Call Notification Service to send welcome email
@@ -141,7 +142,7 @@ export class UserService {
     return result;
   }
   async updateUser(id: string, data: any, updatedBy: string) {
-    const { name, roleCode, password, phone } = data;
+    const { name, roleCode, password, phone, mapel } = data;
 
     // 1. Find User
     const user = await prisma.user.findUnique({
@@ -192,6 +193,7 @@ export class UserService {
       await axios.put(`${userServiceUrl}/api/v1/internal/users/${id}`, {
         name,
         phone,
+        mapel,
         updatedBy
       }, { headers: { 'x-internal-secret': internalSecret } });
     } catch (error: any) {
