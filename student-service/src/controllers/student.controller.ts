@@ -132,8 +132,16 @@ export const createStudent = async (req: Request, res: Response) => {
       let baseUrl = authServiceUrl.endsWith('/') ? authServiceUrl.slice(0, -1) : authServiceUrl;
       const fullUrl = `${baseUrl}/api/v1/auth/internal/users`;
       
+      // Generate username from name: "Akmal Hafid" -> "akmal.hafid"
+      const generatedUsername = studentData.name
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '.')
+        .replace(/[^a-z0-9.]/g, '') + 
+        (studentData.nis ? `.${studentData.nis.slice(-4)}` : ''); // Append last 4 digits of NIS for uniqueness
+      
       const authResponse = await axios.post(fullUrl, {
-        username: studentData.nis, // Use NIS as username
+        username: generatedUsername,
         email: studentEmail,
         name: studentData.name,
         roleCode: 'SISWA'
@@ -457,8 +465,16 @@ export const bulkCreateStudents = async (req: Request, res: Response) => {
         let baseUrl = authServiceUrl.endsWith('/') ? authServiceUrl.slice(0, -1) : authServiceUrl;
         const fullUrl = `${baseUrl}/api/v1/auth/internal/users`;
 
+        // Generate username from name
+        const generatedUsername = studentData.nama
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, '.')
+          .replace(/[^a-z0-9.]/g, '') + 
+          (studentData.nis ? `.${studentData.nis.toString().slice(-4)}` : '');
+
         await axios.post(fullUrl, {
-          username: studentData.nis,
+          username: generatedUsername,
           email: studentData.email,
           name: studentData.nama,
           roleCode: 'SISWA'
@@ -484,6 +500,48 @@ export const bulkCreateStudents = async (req: Request, res: Response) => {
   }
 
   return sendResponse(res, 200, true, 'Bulk import completed', { results });
+};
+
+export const bulkDeleteStudents = async (req: Request, res: Response) => {
+  const { ids } = req.body;
+  if (!Array.isArray(ids)) return sendError(res, 400, 'ids must be an array');
+
+  const deletedBy = (req as any).user?.id || 'SYSTEM';
+
+  try {
+    const students = await prisma.student.findMany({
+      where: { id: { in: ids }, deletedAt: null },
+      select: { id: true, classId: true }
+    });
+
+    if (students.length === 0) return sendResponse(res, 200, true, 'No active students found to delete');
+
+    const classCountMap: Record<string, number> = {};
+    students.forEach(s => {
+      classCountMap[s.classId] = (classCountMap[s.classId] || 0) + 1;
+    });
+
+    await prisma.$transaction([
+      prisma.student.updateMany({
+        where: { id: { in: ids } },
+        data: {
+          deletedAt: new Date(),
+          isActive: false,
+          updatedBy: deletedBy,
+        }
+      }),
+      ...Object.entries(classCountMap).map(([classId, count]) => 
+        prisma.class.update({
+          where: { id: classId },
+          data: { currentTotal: { decrement: count } }
+        })
+      )
+    ]);
+
+    return sendResponse(res, 200, true, `${students.length} students deleted successfully`);
+  } catch (error: any) {
+    return sendError(res, 500, 'Error in bulk delete: ' + error.message);
+  }
 };
 
 export const getConsolidatedMyChild = async (req: Request, res: Response) => {

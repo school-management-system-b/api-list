@@ -7,6 +7,7 @@ const router = Router();
 router.get('/my-profile', studentController.getMyProfile);
 router.get('/', studentController.getStudents);
 router.post('/bulk', studentController.bulkCreateStudents);
+router.post('/bulk-delete', studentController.bulkDeleteStudents);
 router.post('/internal/link-parent', studentController.linkParentByNis);
 router.post('/internal/assign-wali-kelas', studentController.assignWaliKelas);
 router.get('/:id', studentController.getStudentById);
