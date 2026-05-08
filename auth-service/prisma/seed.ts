@@ -30,6 +30,61 @@ async function main() {
         },
     });
 
+    const bkRole = await prisma.role.upsert({
+        where: { code: 'BK' },
+        update: {},
+        create: {
+            code: 'BK',
+            name: 'Guru BK',
+            description: 'Bimbingan Konseling',
+            level: 70,
+        },
+    });
+
+    const walikelasRole = await prisma.role.upsert({
+        where: { code: 'WALIKELAS' },
+        update: {},
+        create: {
+            code: 'WALIKELAS',
+            name: 'Wali Kelas',
+            description: 'Wali Kelas Siswa',
+            level: 60,
+        },
+    });
+
+    const gurumapelRole = await prisma.role.upsert({
+        where: { code: 'GURUMAPEL' },
+        update: {},
+        create: {
+            code: 'GURUMAPEL',
+            name: 'Guru Mata Pelajaran',
+            description: 'Guru Mata Pelajaran',
+            level: 50,
+        },
+    });
+
+    const orangtuaRole = await prisma.role.upsert({
+        where: { code: 'ORANGTUA' },
+        update: {},
+        create: {
+            code: 'ORANGTUA',
+            name: 'Orang Tua / Wali',
+            description: 'Orang Tua atau Wali Siswa',
+            level: 20,
+        },
+    });
+
+    const siswaRole = await prisma.role.upsert({
+        where: { code: 'SISWA' },
+        update: {},
+        create: {
+            code: 'SISWA',
+            name: 'Siswa',
+            description: 'Siswa Sekolah',
+            level: 10,
+        },
+    });
+
     console.log('Roles created.');
 
     // 2. Create Modules
