@@ -8,6 +8,13 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
+Write-Host "Formatting master schema..." -ForegroundColor Gray
+npx prisma format --schema=master-schema.prisma
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "❌ Failed to format master schema!" -ForegroundColor Red
+    exit $LASTEXITCODE
+}
+
 Write-Host "`n====================================" -ForegroundColor Cyan
 Write-Host "2. Pushing Master Schema to Database" -ForegroundColor Yellow
 Write-Host "====================================" -ForegroundColor Cyan
