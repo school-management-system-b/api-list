@@ -61,3 +61,9 @@ docker system prune -a
 - Make sure all `.env` files have valid `DATABASE_URL`
 - Services communicate via `microservices-network`
 - Ports 3000-3010 must be available on host
+
+
+untuk db :
+
+./sync-db.ps1
+
