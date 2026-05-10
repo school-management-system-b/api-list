@@ -29,9 +29,10 @@ async function main() {
       status:       'APPROVED_BK' as const,
       academicYear: AY,
       semester:     SEM,
+      createdBy:    'seed-gurumapel-001',
     },
     {
-      // Violation 2: SEDANG - PENDING (awaiting approval)
+      // Violation 2: SEDANG - PENDING
       studentId:    'seed-student-002',
       studentNisn:  '0012345602',
       studentName:  'Rina Wulandari',
@@ -49,6 +50,7 @@ async function main() {
       status:       'PENDING' as const,
       academicYear: AY,
       semester:     SEM,
+      createdBy:    'seed-walikelas-001',
     },
     {
       // Violation 3: RINGAN - APPROVED_WALI
@@ -72,6 +74,7 @@ async function main() {
       approvedByWaliAt:   new Date('2025-01-21'),
       approvedByWaliName: 'Ani Rahayu, S.Pd',
       waliKelasNotes:     'Sudah dikonfirmasi, HP disita 1 hari',
+      createdBy:    'seed-walikelas-002',
     },
     {
       // Violation 4: BERAT - REJECTED
@@ -95,6 +98,7 @@ async function main() {
       rejectionReason: 'Setelah penyelidikan, tidak terbukti ada pencurian. Buku ditemukan di laci sendiri.',
       academicYear: AY,
       semester:     SEM,
+      createdBy:    'seed-gurumapel-001',
     },
   ];
 

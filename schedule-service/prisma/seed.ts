@@ -28,7 +28,7 @@ async function main() {
     const sub = await prisma.subject.upsert({
       where:  { code: s.code },
       update: { name: s.name },
-      create: { code: s.code, name: s.name },
+      create: { code: s.code, name: s.name, createdBy: 'SYSTEM' },
     });
     subjectMap[s.code] = sub.id;
   }
