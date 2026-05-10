@@ -7,7 +7,18 @@ import { hashPassword } from './password.service';
 
 export class UserService {
   async createUser(data: any, createdBy: string) {
-    const { username, email, name, roleCode, nip_nis, phone, mapel } = data;
+    let { username, email, name, roleCode, nip_nis, phone, mapel } = data;
+
+    // Auto-mapping for role codes (handle underscore vs non-underscore mismatches)
+    const roleMapping: Record<string, string> = {
+      'GURU_MAPEL': 'GURUMAPEL',
+      'WALI_KELAS': 'WALIKELAS',
+      'GURU_BK': 'BK',
+      'ORANG_TUA': 'ORANGTUA'
+    };
+    if (roleMapping[roleCode]) {
+      roleCode = roleMapping[roleCode];
+    }
 
     // 1. Generate temporary password (Secure)
     const tempPassword = crypto.randomBytes(4).toString('hex') + 'A1!';
