@@ -43,14 +43,20 @@ export class UserService {
         },
       });
 
-      // Insert Audit Log (using executeRaw to bypass Prisma schema if not updated yet, or just rely on manual insert later, but better to use raw query if schema isn't generated)
+      // Insert Audit Log
       try {
-        await tx.$executeRaw`
-          INSERT INTO audit_logs (actor_id, actor_name, action, target_type, target_id, target_name)
-          VALUES (${createdBy}, 'System/Admin', 'CREATE_USER', 'user', ${newUser.id}, ${username})
-        `;
+        await tx.auditLog.create({
+          data: {
+            actorId: createdBy,
+            actorName: 'System/Admin',
+            action: 'CREATE_USER',
+            targetType: 'user',
+            targetId: newUser.id,
+            targetName: username,
+          }
+        });
       } catch (e: any) {
-        logger.warn('Could not insert audit log (maybe table not ready): ' + e.message);
+        logger.warn('Could not insert audit log: ' + e.message);
       }
 
       return newUser;
