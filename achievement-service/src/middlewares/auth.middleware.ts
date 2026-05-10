@@ -14,6 +14,39 @@ export interface AuthRequest extends Request {
 
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
+  const internalSecret = req.headers['x-internal-secret'];
+
+  // Check Internal Service Secret
+  if (internalSecret && internalSecret === process.env.INTERNAL_SECRET) {
+    const userId = req.headers['x-user-id'] as string;
+    const userRoles = req.headers['x-user-roles'] as string;
+    
+    if (userId && userRoles) {
+      try {
+        req.user = {
+          id: userId,
+          name: 'Internal Propagated User',
+          email: 'system@internal.local',
+          roles: JSON.parse(userRoles)
+        };
+      } catch (e) {
+        req.user = { 
+          id: userId, 
+          name: 'Internal Propagated User', 
+          email: 'system@internal.local',
+          roles: [userRoles] 
+        };
+      }
+    } else {
+      req.user = {
+        id: 'SYSTEM',
+        name: 'Internal System',
+        email: 'system@internal.local',
+        roles: ['ADMIN', 'SUPERADMIN', 'SYSTEM']
+      };
+    }
+    return next();
+  }
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return sendError(res, 401, 'Unauthorized: No token provided');

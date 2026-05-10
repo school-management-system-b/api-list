@@ -5,84 +5,36 @@ import { approveSchema, rejectSchema } from '../validators/achievement.validator
 
 import axios from 'axios';
 
-export const approveWaliKelas = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { error, value } = approveSchema.validate(req.body); // Reusing approveSchema for notes
-  if (error) return sendError(res, 400, error.details[0].message);
-
-  const achievement = await prisma.achievement.findUnique({ where: { id } });
-  if (!achievement) return sendError(res, 404, 'Achievement not found');
-  if (achievement.status !== 'PENDING')
-    return sendError(res, 400, 'Achievement is not in PENDING status');
-
+const finalizeAchievement = async (achievement: any, approver: any, notes: string, options: any = {}) => {
   const updated = await prisma.achievement.update({
-    where: { id },
-    data: {
-      status: 'APPROVED_WALI',
-      approvedAt: new Date(),
-      approvedBy: (req as any).user.id,
-      approvedByName: (req as any).user.name,
-      bkNotes: value.notes, // Using bkNotes field for Wali notes as well or add waliNotes
-    },
-  });
-
-  await prisma.achievementApprovalHistory.create({
-    data: {
-      achievementId: id,
-      action: 'APPROVE_WALI',
-      fromStatus: 'PENDING',
-      toStatus: 'APPROVED_WALI',
-      approverUserId: (req as any).user.id,
-      approverName: (req as any).user.name,
-      approverRole: (req as any).user.roles?.[0] || 'WALIKELAS',
-      notes: value.notes,
-    },
-  });
-
-  return sendResponse(res, 200, true, 'Achievement approved by Wali Kelas', updated);
-};
-
-export const approveBK = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { error, value } = approveSchema.validate(req.body);
-  if (error) return sendError(res, 400, error.details[0].message);
-
-  const achievement = await prisma.achievement.findUnique({ where: { id } });
-  if (!achievement) return sendError(res, 404, 'Achievement not found');
-  
-  if (achievement.status !== 'APPROVED_WALI') {
-    return sendError(res, 400, 'Achievement must be approved by Wali Kelas first');
-  }
-
-  const updated = await prisma.achievement.update({
-    where: { id },
+    where: { id: achievement.id },
     data: {
       status: 'APPROVED_BK',
       approvedAt: new Date(),
-      approvedBy: (req as any).user.id,
-      approvedByName: (req as any).user.name,
-      bkNotes: value.notes,
-      isPublished: value.isPublished,
-      isFeatured: value.isFeatured,
-      featuredUntil: value.featuredUntil,
+      approvedBy: approver.id,
+      approvedByName: approver.name,
+      bkNotes: notes,
+      isPublished: options.isPublished ?? true,
+      isFeatured: options.isFeatured ?? false,
+      featuredUntil: options.featuredUntil,
     },
   });
 
   await prisma.achievementApprovalHistory.create({
     data: {
-      achievementId: id,
-      action: 'APPROVE_BK',
-      fromStatus: 'APPROVED_WALI',
+      achievementId: achievement.id,
+      action: approver.roles?.[0]?.includes('BK') ? 'APPROVE_BK' : 'APPROVE_WALI',
+      fromStatus: achievement.status,
       toStatus: 'APPROVED_BK',
-      approverUserId: (req as any).user.id,
-      approverName: (req as any).user.name,
-      approverRole: (req as any).user.roles?.[0] || 'BK',
-      notes: value.notes,
+      approverUserId: approver.id,
+      approverName: approver.name,
+      approverRole: approver.roles?.[0] || 'SYSTEM',
+      notes: notes,
     },
   });
 
   // If published and national/international, auto add to hall of fame
-  if (value.isPublished && ['NASIONAL', 'INTERNASIONAL'].includes(achievement.level as string)) {
+  if (updated.isPublished && ['NASIONAL', 'INTERNASIONAL'].includes(achievement.level as string)) {
     await prisma.hallOfFame.create({
       data: {
         studentId: achievement.studentId,
@@ -124,6 +76,38 @@ export const approveBK = async (req: Request, res: Response) => {
     category: 'ACHIEVEMENT',
     channels: ['IN_APP', 'EMAIL']
   }, { headers }).catch((e: any) => console.error('Failed to send notification', e.message));
+
+  return updated;
+};
+
+export const approveWaliKelas = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { error, value } = approveSchema.validate(req.body);
+  if (error) return sendError(res, 400, error.details[0].message);
+
+  const achievement = await prisma.achievement.findUnique({ where: { id } });
+  if (!achievement) return sendError(res, 404, 'Achievement not found');
+  if (achievement.status !== 'PENDING')
+    return sendError(res, 400, 'Achievement is not in PENDING status');
+
+  const updated = await finalizeAchievement(achievement, (req as any).user, value.notes);
+
+  return sendResponse(res, 200, true, 'Achievement approved (Final)', updated);
+};
+
+export const approveBK = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { error, value } = approveSchema.validate(req.body);
+  if (error) return sendError(res, 400, error.details[0].message);
+
+  const achievement = await prisma.achievement.findUnique({ where: { id } });
+  if (!achievement) return sendError(res, 404, 'Achievement not found');
+  
+  if (achievement.status === 'APPROVED_BK') {
+    return sendError(res, 400, 'Achievement is already finalized');
+  }
+
+  const updated = await finalizeAchievement(achievement, (req as any).user, value.notes, value);
 
   return sendResponse(res, 200, true, 'Achievement approved by BK (Final)', updated);
 };

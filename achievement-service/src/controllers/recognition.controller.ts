@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../config/prisma';
+import axios from 'axios';
 import { sendResponse } from '../utils/response';
 
 export const getHallOfFame = async (req: Request, res: Response) => {

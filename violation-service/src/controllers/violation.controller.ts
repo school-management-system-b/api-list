@@ -9,6 +9,9 @@ export const getViolations = async (req: Request, res: Response) => {
   const search = req.headers['x-paging-search'] as string;
   const studentId = req.query.studentId as string;
   const status = req.query.status as any;
+  const startDate = req.query.startDate as string;
+  const endDate = req.query.endDate as string;
+  const academicYear = req.query.academicYear as string;
 
   const user = (req as any).user;
   const userRole = user?.roles?.[0];
@@ -17,6 +20,7 @@ export const getViolations = async (req: Request, res: Response) => {
     deletedAt: null,
     ...(studentId && { studentId }),
     ...(status && { status }),
+    ...(academicYear && { academicYear }),
     ...(search && {
       OR: [
         { studentName: { contains: search, mode: 'insensitive' as any } },
@@ -25,6 +29,12 @@ export const getViolations = async (req: Request, res: Response) => {
       ],
     }),
   };
+
+  if (startDate || endDate) {
+    where.violationDate = {};
+    if (startDate) where.violationDate.gte = new Date(startDate);
+    if (endDate) where.violationDate.lte = new Date(endDate);
+  }
 
   // RBAC Data Filtering
   if (userRole === 'WALIKELAS') {
@@ -65,8 +75,14 @@ export const getViolations = async (req: Request, res: Response) => {
     prisma.violation.count({ where }),
   ]);
 
+  // Inject needsWaliKelasApproval flag
+  const formattedItems = items.map((item: any) => ({
+    ...item,
+    needsWaliKelasApproval: userRole === 'WALIKELAS' && item.status === 'PENDING'
+  }));
+
   return sendResponse(res, 200, true, 'Violations retrieved', {
-    items,
+    items: formattedItems,
     pagination: {
       offset,
       limit,

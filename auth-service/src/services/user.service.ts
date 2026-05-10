@@ -7,7 +7,7 @@ import { hashPassword } from './password.service';
 
 export class UserService {
   async createUser(data: any, createdBy: string) {
-    let { username, email, name, roleCode, nip_nis, phone, mapel } = data;
+    let { username, email, name, roleCode, nip_nis, phone, mapel, classId } = data;
 
     // Auto-mapping for role codes (handle underscore vs non-underscore mismatches)
     if (roleCode) {
@@ -25,7 +25,21 @@ export class UserService {
       roleCode = roleMapping[normalizedCode] || normalizedCode;
     }
 
-    // 1. Generate temporary password (Secure)
+    // 1. Check if user already exists
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { username },
+          { email }
+        ]
+      }
+    });
+
+    if (existingUser) {
+      throw { status: 400, message: `User with username '${username}' or email '${email}' already exists` };
+    }
+
+    // 2. Generate temporary password (Secure)
     const tempPassword = crypto.randomBytes(4).toString('hex') + 'A1!';
     const hashedPassword = await hashPassword(tempPassword);
 
@@ -81,33 +95,50 @@ export class UserService {
     // 4. Direct HTTP calls to other services
     try {
       const userServiceUrl = process.env.USER_SERVICE_URL || 'http://localhost:3002';
-      const notificationServiceUrl = process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3007';
+      const notificationServiceUrl = process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3008';
       const internalSecret = process.env.INTERNAL_SECRET || 'change-this-to-a-strong-secret-in-production';
 
       const headers = { 'x-internal-secret': internalSecret };
 
-      // Call User Service to create profile
-      await axios.post(`${userServiceUrl}/api/v1/internal/users`, {
-        userId: user.id,
-        username: user.username,
-        email: user.email,
-        name: user.name,
-        nip_nis: nip_nis,
-        phone: phone,
-        mapel: mapel,
-      }, { headers }).catch(err => logger.error('Failed to auto-create profile in User Service:', err.message));
+      // Call User Service to create profile (Await this as it's critical)
+      try {
+        await axios.post(`${userServiceUrl}/api/v1/internal/users`, {
+          userId: user.id,
+          username: user.username,
+          email: user.email,
+          name: user.name,
+          nip_nis: nip_nis,
+          phone: phone,
+          mapel: mapel,
+        }, { headers, timeout: 5000 });
+      } catch (err: any) {
+        logger.error(`Failed to auto-create profile in User Service for ${user.username}: ${err.message}`);
+      }
 
-      // Call Notification Service to send welcome email
-      await axios.post(`${notificationServiceUrl}/api/v1/internal/notifications/welcome`, {
+      axios.post(`${notificationServiceUrl}/api/v1/internal/notifications/welcome`, {
         id: user.id,
         username: user.username,
         email: user.email,
         name: user.name,
         tempPassword,
-      }, { headers }).catch(err => logger.error('Failed to send welcome email via Notification Service:', err.message));
+      }, { headers, timeout: 5000 }).catch(err => {
+        logger.warn(`Background: Failed to send welcome email via Notification Service for ${user.username}: ${err.message}`);
+      });
+
+      // Call Student Service to assign Wali Kelas if role is WALIKELAS
+      if (roleCode === 'WALIKELAS' && classId) {
+        const studentServiceUrl = process.env.STUDENT_SERVICE_URL || 'http://localhost:3003';
+        axios.post(`${studentServiceUrl}/api/v1/students/internal/assign-wali-kelas`, {
+          teacherId: user.id,
+          teacherName: user.name,
+          className: classId // Flexible lookup will handle ID
+        }, { headers, timeout: 5000 }).catch(err => {
+          logger.warn(`Background: Failed to assign Wali Kelas ${user.name} to class ${classId}: ${err.message}`);
+        });
+      }
 
     } catch (error: any) {
-      logger.error('Error during inter-service communication:', error.message);
+      logger.error('Unexpected error during inter-service communication:', error.message);
     }
 
     return {
@@ -220,19 +251,35 @@ export class UserService {
       }
     });
 
-    // 4. Sync to User Service if name or phone changed
+    // 4. Sync to other services
+    const userServiceUrl = process.env.USER_SERVICE_URL || 'http://localhost:3002';
+    const studentServiceUrl = process.env.STUDENT_SERVICE_URL || 'http://localhost:3003';
+    const internalSecret = process.env.INTERNAL_SECRET || 'change-this-to-a-strong-secret-in-production';
+    const headers = { 'x-internal-secret': internalSecret };
+
+    // Sync to User Service (Profile)
     try {
-      const userServiceUrl = process.env.USER_SERVICE_URL || 'http://localhost:3002';
-      const internalSecret = process.env.INTERNAL_SECRET || 'change-this-to-a-strong-secret-in-production';
-      
       await axios.put(`${userServiceUrl}/api/v1/internal/users/${id}`, {
         name,
         phone,
         mapel,
         updatedBy
-      }, { headers: { 'x-internal-secret': internalSecret } });
+      }, { headers, timeout: 5000 });
     } catch (error: any) {
-      logger.warn(`Failed to sync profile update to User Service for user ${id}: ${error.message}`);
+      logger.warn(`Sync Warning: Failed to update profile in User Service for user ${id}: ${error.message}`);
+    }
+
+    // Sync to Student Service (Wali Kelas Assignment)
+    if (data.classId && (roleCode === 'WALIKELAS' || user.userRoles[0]?.role?.code === 'WALIKELAS')) {
+      try {
+        await axios.post(`${studentServiceUrl}/api/v1/students/internal/assign-wali-kelas`, {
+          teacherId: id,
+          teacherName: name || user.name,
+          className: data.classId
+        }, { headers, timeout: 5000 });
+      } catch (error: any) {
+        logger.error(`Sync Error: Failed to assign Wali Kelas ${id} to class ${data.classId}: ${error.message}`);
+      }
     }
 
     return { id, name, roleCode };

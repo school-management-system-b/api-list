@@ -12,7 +12,7 @@ import counselingRoutes from './routes/counseling.routes';
 import { errorHandler } from '@microservices/common/middlewares/error.handler';
 import { healthCheck } from '@microservices/common/utils/health';
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
 
 const app = express();
 const port = process.env.PORT || 3009;

@@ -11,11 +11,22 @@ export const getStudents = async (req: Request, res: Response) => {
   const limit = parseInt(req.headers['x-paging-limit'] as string) || 25;
   const search = req.headers['x-paging-search'] as string;
   const classId = req.query.classId as string;
+  const waliKelasIdQuery = req.query.waliKelasId as string;
   const status = req.query.status as any;
+
+  // RBAC: Filter by Wali Kelas if role is WALIKELAS
+  const userId = req.headers['x-user-id'] as string;
+  const rawRoles = req.headers['x-user-roles'] as string;
+  let isWaliKelas = false;
+  try {
+    const roles = rawRoles ? JSON.parse(rawRoles) : [];
+    isWaliKelas = roles.includes('WALIKELAS');
+  } catch (e) {}
 
   const where = {
     deletedAt: null,
     ...(classId && { classId }),
+    ...((isWaliKelas || waliKelasIdQuery) && { waliKelasId: waliKelasIdQuery || userId }),
     ...(status && { status }),
     ...(search && {
       OR: [
@@ -398,10 +409,11 @@ export const assignWaliKelas = async (req: Request, res: Response) => {
   }
 
   try {
-    // 1. Find the class
+    // 1. Find the class (check ID first if it looks like a UUID, then name/code)
     const classInfo = await prisma.class.findFirst({
       where: { 
         OR: [
+          { id: className }, // Attempt as ID
           { name: className },
           { code: className }
         ]

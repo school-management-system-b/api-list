@@ -4,8 +4,8 @@ import { sendResponse, sendError } from '../utils/response';
 import { createCategorySchema, updateCategorySchema } from '../validators/category.validator';
 
 export const getCategories = async (req: Request, res: Response) => {
-  const offset = parseInt(req.headers['x-paging-offset'] as string) || 0;
-  const limit = parseInt(req.headers['x-paging-limit'] as string) || 25;
+  const offset = parseInt(req.query.offset as string) || parseInt(req.headers['x-paging-offset'] as string) || 0;
+  const limit = parseInt(req.query.limit as string) || parseInt(req.headers['x-paging-limit'] as string) || 25;
   const search = req.headers['x-paging-search'] as string;
   const type = req.query.type as any;
   const severity = req.query.severity as any;
@@ -65,6 +65,31 @@ export const getCategories = async (req: Request, res: Response) => {
 export const createCategory = async (req: Request, res: Response) => {
   const { error, value } = createCategorySchema.validate(req.body);
   if (error) return sendError(res, 400, error.details[0].message);
+
+  // Check if code exists
+  const existing = await prisma.category.findUnique({ 
+    where: { code: value.code } 
+  });
+
+  if (existing) {
+    // If it's not deleted, it's a real duplicate
+    if (!existing.deletedAt) {
+      return sendError(res, 400, `Category with code '${value.code}' already exists`);
+    }
+
+    // If it was deleted, restore and update it
+    const restored = await prisma.category.update({
+      where: { id: existing.id },
+      data: {
+        ...value,
+        deletedAt: null,
+        deletedBy: null,
+        isActive: true,
+        updatedBy: (req as any).user?.id || 'SYSTEM',
+      }
+    });
+    return sendResponse(res, 201, true, 'Category restored and updated successfully', restored);
+  }
 
   let level = 0;
   if (value.parentId) {

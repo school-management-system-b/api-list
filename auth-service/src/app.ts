@@ -13,8 +13,8 @@ import { healthCheck } from '@microservices/common/utils/health';
 import rateLimit from 'express-rate-limit';
 import { AUTH_CONFIG } from './config/constants';
 
-dotenv.config();
-
+import path from 'path';
+dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
 
 const app = express();
 const port = process.env.PORT || 3001;

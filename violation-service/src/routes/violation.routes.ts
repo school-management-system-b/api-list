@@ -30,6 +30,7 @@ router.post('/:id/appeal/review', appealController.reviewAppeal);
 
 // Stats
 router.get('/stats/summary', statsController.getStatsSummary);
+router.get('/stats/trends', statsController.getViolationTrends);
 router.get('/stats/repeat-offenders', statsController.getRepeatOffenders);
 router.get('/stats/top-reporters', statsController.getTopReporters);
 

@@ -36,6 +36,7 @@ export const createUserSchema = Joi.object({
   nip_nis: Joi.string().optional(), // For internal linkage
   phone: Joi.string().optional().allow(''), // Added for profile synchronization
   mapel: Joi.string().optional().allow(''), // Added for teacher subject synchronization
+  classId: Joi.string().optional().allow(''), // Added for homeroom teacher class assignment
 });
 
 export const bulkCreateUserSchema = Joi.array().items(createUserSchema).min(1).required();

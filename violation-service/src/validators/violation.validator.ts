@@ -16,6 +16,7 @@ export const createViolationSchema = Joi.object({
     .pattern(/^\d{4}\/\d{4}$/)
     .required(),
   semester: Joi.number().valid(1, 2).required(),
+  points: Joi.number().min(0).optional(),
 });
 
 export const approveWaliKelasSchema = Joi.object({

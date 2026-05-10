@@ -10,7 +10,7 @@ export const createAchievementSchema = Joi.object({
   organizer: Joi.string().max(200).optional(),
   level: Joi.string()
     .valid('SEKOLAH', 'KECAMATAN', 'KABUPATEN', 'PROVINSI', 'NASIONAL', 'INTERNASIONAL')
-    .required(),
+    .optional(),
   rank: Joi.string()
     .valid(
       'JUARA_1',
@@ -24,6 +24,7 @@ export const createAchievementSchema = Joi.object({
       'LULUS_SELEKSI'
     )
     .optional(),
+  points: Joi.number().min(0).optional(),
   isTeamAchievement: Joi.boolean().default(false),
   teamName: Joi.string().max(100).when('isTeamAchievement', {
     is: true,

@@ -6,18 +6,28 @@ import axios from 'axios';
 import { SCHOOL_CONFIG } from '../config/constants';
 
 class DeliveryService {
-  private transporter;
+  private transporter: any;
 
-  constructor() {
+  constructor() {}
+
+  private getTransporter() {
+    if (this.transporter) return this.transporter;
+
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS?.replace(/['"]/g, ''); // Robust: remove quotes if any
+
+    if (!user || !pass) {
+      logger.warn('SMTP credentials missing! Email delivery will fail.');
+    }
+
     this.transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST || 'smtp.gmail.com',
       port: parseInt(process.env.SMTP_PORT || '587'),
       secure: process.env.SMTP_SECURE === 'true',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
+      auth: { user, pass },
     });
+
+    return this.transporter;
   }
 
   async deliver(notificationId: string): Promise<void> {
@@ -127,7 +137,7 @@ class DeliveryService {
       `;
     }
 
-    await this.transporter.sendMail({
+    await this.getTransporter().sendMail({
       from: process.env.FROM_EMAIL || `"${SCHOOL_CONFIG.NAME}" <noreply@school.com>`,
       to: notification.recipientEmail,
       subject: notification.title,

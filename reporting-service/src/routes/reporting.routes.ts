@@ -11,6 +11,7 @@ router.get('/trends/attendance', analyticsController.getAttendanceTrends);
 router.get('/dashboard/top-reporters', analyticsController.getTopReportingTeachers);
 
 // Report Generation
+router.get('/reports/students', analyticsController.getStudentPointsReport);
 router.post('/generate', reportController.generateReport);
 router.get('/history', reportController.getExportHistory);
 

@@ -7,7 +7,12 @@ const VIOLATION_SERVICE_URL = process.env.VIOLATION_SERVICE_URL || 'http://local
 const ACHIEVEMENT_SERVICE_URL = process.env.ACHIEVEMENT_SERVICE_URL || 'http://localhost:3005';
 const STUDENT_SERVICE_URL = process.env.STUDENT_SERVICE_URL || 'http://localhost:3003';
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET || 'change-this-to-a-strong-secret-in-production';
-const internalHeaders = { 'x-internal-secret': INTERNAL_SECRET };
+
+const getContextHeaders = (req: Request) => ({
+  'x-internal-secret': INTERNAL_SECRET,
+  'x-user-id': req.headers['x-user-id'] as string || '',
+  'x-user-roles': req.headers['x-user-roles'] as string || '[]',
+});
 
 const calculateGrade = (achievements: number, violations: number) => {
   if (achievements === 0 && violations === 0) return 'B';
@@ -22,7 +27,8 @@ const calculateGrade = (achievements: number, violations: number) => {
 export const getDashboardSummary = async (req: Request, res: Response) => {
   try {
     const { startDate, endDate, academicYear } = req.query;
-    const cacheKey = `dashboard_summary_${startDate || 'all'}_${endDate || 'all'}_${academicYear || 'current'}`;
+    const userId = req.headers['x-user-id'] as string || 'system';
+    const cacheKey = `dashboard_summary_${userId}_${startDate || 'all'}_${endDate || 'all'}_${academicYear || 'current'}`;
     const now = new Date();
 
     // Pass filters to downstream
@@ -32,19 +38,22 @@ export const getDashboardSummary = async (req: Request, res: Response) => {
     if (academicYear) params.append('academicYear', academicYear as string);
     const queryString = params.toString() ? `?${params.toString()}` : '';
 
-    // Check cache first
+    /* 
     const cached = await prisma.analyticsCache.findUnique({ where: { key: cacheKey } });
     if (cached && cached.expiredAt > now) {
       return sendResponse(res, 200, true, 'Dashboard summary retrieved (cached)', cached.data);
     }
+    */
 
+    const headers = getContextHeaders(req);
+    
     // Fetch data in parallel from other services
     const [violationsRes, achievementsRes, studentsRes, violationStatsRes, classesRes] = await Promise.allSettled([
-      axios.get(`${VIOLATION_SERVICE_URL}/api/v1/violations${queryString}${queryString ? '&' : '?'}limit=1`, { headers: internalHeaders, timeout: 5000 }),
-      axios.get(`${ACHIEVEMENT_SERVICE_URL}/api/v1/achievements/stats/summary${queryString}`, { headers: internalHeaders, timeout: 5000 }),
-      axios.get(`${STUDENT_SERVICE_URL}/api/v1/students${queryString}${queryString ? '&' : '?'}limit=1`, { headers: internalHeaders, timeout: 5000 }),
-      axios.get(`${VIOLATION_SERVICE_URL}/api/v1/violations/stats/summary${queryString}`, { headers: internalHeaders, timeout: 5000 }),
-      axios.get(`${STUDENT_SERVICE_URL}/api/v1/classes`, { headers: internalHeaders, timeout: 5000 }),
+      axios.get(`${VIOLATION_SERVICE_URL}/api/v1/violations${queryString}${queryString ? '&' : '?'}limit=1`, { headers, timeout: 5000 }),
+      axios.get(`${ACHIEVEMENT_SERVICE_URL}/api/v1/achievements/stats/summary${queryString}`, { headers, timeout: 5000 }),
+      axios.get(`${STUDENT_SERVICE_URL}/api/v1/students${queryString}${queryString ? '&' : '?'}limit=1`, { headers, timeout: 5000 }),
+      axios.get(`${VIOLATION_SERVICE_URL}/api/v1/violations/stats/summary${queryString}`, { headers, timeout: 5000 }),
+      axios.get(`${STUDENT_SERVICE_URL}/api/v1/classes`, { headers, timeout: 5000 }),
     ]);
 
     const totalViolations =
@@ -188,18 +197,21 @@ export const getDashboardSummary = async (req: Request, res: Response) => {
 
 export const getViolationTrends = async (req: Request, res: Response) => {
   try {
-    const cacheKey = `violation_trends_${req.query.year || 'current'}`;
+    const userId = req.headers['x-user-id'] as string || 'system';
+    const cacheKey = `violation_trends_${userId}_${req.query.year || 'current'}`;
     const now = new Date();
 
+    /*
     const cached = await prisma.analyticsCache.findUnique({ where: { key: cacheKey } });
     if (cached && cached.expiredAt > now) {
       return sendResponse(res, 200, true, 'Violation trends retrieved (cached)', cached.data);
     }
+    */
 
     // Fetch from violation-service
     const response = await axios.get(
-      `${VIOLATION_SERVICE_URL}/api/v1/violations/stats/summary`,
-      { headers: internalHeaders, timeout: 8000 }
+      `${VIOLATION_SERVICE_URL}/api/v1/violations/stats/trends`,
+      { headers: getContextHeaders(req), timeout: 8000 }
     );
 
     const trends = response.data?.data || [];
@@ -220,19 +232,22 @@ export const getViolationTrends = async (req: Request, res: Response) => {
 
 export const getAttendanceTrends = async (req: Request, res: Response) => {
   try {
-    const cacheKey = `attendance_trends_${req.query.classId || 'all'}_${req.query.date || 'recent'}`;
+    const userId = req.headers['x-user-id'] as string || 'system';
+    const cacheKey = `attendance_trends_${userId}_${req.query.classId || 'all'}_${req.query.date || 'recent'}`;
     const now = new Date();
 
+    /*
     const cached = await prisma.analyticsCache.findUnique({ where: { key: cacheKey } });
     if (cached && cached.expiredAt > now) {
       return sendResponse(res, 200, true, 'Attendance trends retrieved (cached)', cached.data);
     }
+    */
 
     // We don't have a schedule-service URL set directly, but can use env
     const SCHEDULE_SERVICE_URL = process.env.SCHEDULE_SERVICE_URL || 'http://localhost:3010';
     const response = await axios.get(
       `${SCHEDULE_SERVICE_URL}/api/v1/schedules/attendance/summary`,
-      { headers: internalHeaders, timeout: 8000 }
+      { headers: getContextHeaders(req), timeout: 8000 }
     );
 
     const trends = response.data?.data || [];
@@ -248,19 +263,22 @@ export const getAttendanceTrends = async (req: Request, res: Response) => {
     return sendResponse(res, 200, true, 'Attendance trends (service unavailable)', []);
   }
 };
-export const getTopReportingTeachers = async (_req: Request, res: Response) => {
+export const getTopReportingTeachers = async (req: Request, res: Response) => {
   try {
     const cacheKey = 'top_reporting_teachers';
     const now = new Date();
 
+    /*
     const cached = await prisma.analyticsCache.findUnique({ where: { key: cacheKey } });
     if (cached && cached.expiredAt > now) {
       return sendResponse(res, 200, true, 'Top reporting teachers retrieved (cached)', cached.data);
     }
+    */
 
+    const headers = getContextHeaders(req);
     const [violationReporters, achievementReporters] = await Promise.allSettled([
-      axios.get(`${VIOLATION_SERVICE_URL}/api/v1/violations/stats/top-reporters?limit=10`, { headers: internalHeaders }),
-      axios.get(`${ACHIEVEMENT_SERVICE_URL}/api/v1/achievements/stats/top-reporters?limit=10`, { headers: internalHeaders })
+      axios.get(`${VIOLATION_SERVICE_URL}/api/v1/violations/stats/top-reporters?limit=10`, { headers }),
+      axios.get(`${ACHIEVEMENT_SERVICE_URL}/api/v1/achievements/stats/top-reporters?limit=10`, { headers })
     ]);
 
     const teacherStats: Record<string, any> = {};
@@ -298,5 +316,100 @@ export const getTopReportingTeachers = async (_req: Request, res: Response) => {
     return sendResponse(res, 200, true, 'Top reporting teachers retrieved', sortedReporters);
   } catch (error: any) {
     return sendError(res, 500, error.message);
+  }
+};
+export const getStudentPointsReport = async (req: Request, res: Response) => {
+  try {
+    const { startDate, endDate, classId, search } = req.query;
+    const headers = getContextHeaders(req);
+    
+    // 1. Get Students (filtered by class/search if provided)
+    const studentParams = new URLSearchParams();
+    if (search) studentParams.append('search', search as string);
+    if (classId) studentParams.append('classId', classId as string);
+
+    // RBAC: Filter by Wali Kelas if role is WALIKELAS
+    const userId = req.headers['x-user-id'] as string;
+    const rawRoles = req.headers['x-user-roles'] as string;
+    let isWaliKelas = false;
+    try {
+      const roles = rawRoles ? JSON.parse(rawRoles) : [];
+      isWaliKelas = roles.includes('WALIKELAS');
+    } catch (e) {}
+
+    if (isWaliKelas) {
+      studentParams.append('waliKelasId', userId);
+    }
+
+    let studentsRes;
+    try {
+      studentsRes = await axios.get(`${STUDENT_SERVICE_URL}/api/v1/students?${studentParams.toString()}`, { headers, timeout: 5000 });
+    } catch (e: any) {
+      console.error('Report Error (Student Service):', e.message);
+      return sendError(res, 502, `Student Service Error: ${e.message}`);
+    }
+    const students = studentsRes.data.data.items || [];
+
+    if (students.length === 0) {
+      return sendResponse(res, 200, true, 'No students found for this report', []);
+    }
+
+    // 2. Fetch Violations & Achievements
+    const filterParams = new URLSearchParams();
+    if (startDate) filterParams.append('startDate', startDate as string);
+    if (endDate) filterParams.append('endDate', endDate as string);
+    filterParams.append('limit', '5000');
+    filterParams.append('status', 'APPROVED_WALI');
+
+    let violationsRes, achievementsRes;
+    try {
+      [violationsRes, achievementsRes] = await Promise.all([
+        axios.get(`${VIOLATION_SERVICE_URL}/api/v1/violations?${filterParams.toString()}`, { headers, timeout: 5000 }),
+        axios.get(`${ACHIEVEMENT_SERVICE_URL}/api/v1/achievements?${filterParams.toString()}`, { headers, timeout: 5000 })
+      ]);
+    } catch (e: any) {
+      console.error('Report Error (Violation/Achievement Service):', e.message);
+      return sendError(res, 502, `Violation or Achievement Service Error: ${e.message}`);
+    }
+
+    const violations = violationsRes.data?.data?.items || [];
+    const achievements = achievementsRes.data?.data?.items || [];
+
+    // 3. Aggregate Data
+    if (!Array.isArray(students)) {
+      return sendError(res, 500, 'Invalid student data received from student service');
+    }
+
+    const reportData = students.map((s: any) => {
+      if (!s || !s.id) return null;
+
+      const studentViolations = Array.isArray(violations) 
+        ? violations.filter((v: any) => v.studentId === s.id)
+        : [];
+        
+      const studentAchievements = Array.isArray(achievements)
+        ? achievements.filter((a: any) => a.studentId === s.id)
+        : [];
+
+      const negativePoints = studentViolations.reduce((sum: number, v: any) => sum + (Number(v.points) || 0), 0);
+      const positivePoints = studentAchievements.reduce((sum: number, a: any) => sum + (Number(a.points) || 0), 0);
+
+      return {
+        id: s.id,
+        siswa: s.name || 'Unknown',
+        nis: s.nisn || '-',
+        kelas: s.className || '-',
+        pelanggaran: studentViolations.length,
+        prestasi: studentAchievements.length,
+        negativePoints,
+        positivePoints,
+        totalPoin: positivePoints - negativePoints
+      };
+    }).filter(Boolean); // Remove nulls
+
+    return sendResponse(res, 200, true, 'Student points report generated', reportData);
+  } catch (error: any) {
+    console.error('Report Generation Error (General):', error);
+    return sendError(res, 500, `Reporting Logic Error: ${error.message}`);
   }
 };

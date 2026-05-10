@@ -3,6 +3,10 @@ import { Router, Request, Response } from 'express';
 import CircuitBreaker from 'opossum';
 import { authMiddleware } from '../middlewares/auth.middleware';
 import logger from '../config/logger';
+import dotenv from 'dotenv';
+import path from 'path';
+
+dotenv.config({ path: path.join(__dirname, '../../.env'), override: true });
 
 const router = Router();
 
@@ -19,6 +23,7 @@ const services = [
   { path: '/reporting',     target: process.env.REPORTING_SERVICE_URL,     auth: true  },
   { path: '/counseling',    target: process.env.COUNSELING_SERVICE_URL,    auth: true  },
   { path: '/schedules',     target: process.env.SCHEDULE_SERVICE_URL,      auth: true  },
+  { path: '/subjects',      target: process.env.CATEGORY_SERVICE_URL,      auth: true  },
 ];
 
 // Circuit breaker options

@@ -9,6 +9,9 @@ export const getAchievements = async (req: Request, res: Response) => {
   const search = req.headers['x-paging-search'] as string;
   const studentId = req.query.studentId as string;
   const status = req.query.status as any;
+  const startDate = req.query.startDate as string;
+  const endDate = req.query.endDate as string;
+  const academicYear = req.query.academicYear as string;
 
   const user = (req as any).user;
   const userRole = user?.roles?.[0];
@@ -17,6 +20,7 @@ export const getAchievements = async (req: Request, res: Response) => {
     deletedAt: null,
     ...(studentId && { studentId }),
     ...(status && { status }),
+    ...(academicYear && { academicYear }),
     ...(search && {
       OR: [
         { studentName: { contains: search, mode: 'insensitive' as any } },
@@ -24,6 +28,12 @@ export const getAchievements = async (req: Request, res: Response) => {
       ],
     }),
   };
+
+  if (startDate || endDate) {
+    where.achievementDate = {};
+    if (startDate) where.achievementDate.gte = new Date(startDate);
+    if (endDate) where.achievementDate.lte = new Date(endDate);
+  }
 
   // RBAC Data Filtering
   if (userRole === 'WALIKELAS') {
@@ -97,7 +107,7 @@ export const createAchievement = async (req: Request, res: Response) => {
 
     // Logic calculation placeholder
     const basePoints = category.basePoints || 50;
-    const points = basePoints; // Should use PointsCalculationService depending on level/rank
+    const points = value.points || basePoints; // Priority to manual points from UI
 
     const userRole = (req as any).user?.roles?.[0] || 'GURUMAPEL';
     let initialStatus: 'PENDING' | 'APPROVED_WALI' = 'PENDING';
@@ -109,6 +119,7 @@ export const createAchievement = async (req: Request, res: Response) => {
     const achievement = await prisma.achievement.create({
       data: {
         ...value,
+        level: value.level || 'SEKOLAH', // Default to SEKOLAH to satisfy database constraint
         status: initialStatus,
         studentName: student.name,
         studentNisn: student.nisn,

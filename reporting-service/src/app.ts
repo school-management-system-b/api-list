@@ -1,17 +1,17 @@
+import dotenv from 'dotenv';
+import path from 'path';
+dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
+
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import 'express-async-errors';
-import dotenv from 'dotenv';
 import logger from './config/logger';
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
-import path from 'path';
 import { errorHandler } from '@microservices/common/middlewares/error.handler';
 import { healthCheck } from '@microservices/common/utils/health';
-
-dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3008;

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../config/prisma';
+import axios from 'axios';
 import { sendResponse, sendError } from '../utils/response';
 
 export const getStatsSummary = async (req: Request, res: Response) => {
@@ -100,4 +101,33 @@ export const getTopReporters = async (req: Request, res: Response) => {
     role: r.reporterRole,
     count: r._count.id
   })));
+};
+
+export const getViolationTrends = async (req: Request, res: Response) => {
+  const academicYear = req.query.academicYear as string || "2024/2025";
+  
+  const violations = await prisma.violation.findMany({
+    where: { 
+      academicYear,
+      deletedAt: null 
+    },
+    select: { violationDate: true }
+  });
+
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const trendMap: Record<string, number> = {};
+  months.forEach(m => trendMap[m] = 0);
+
+  violations.forEach(v => {
+    const monthIdx = new Date(v.violationDate).getMonth();
+    const monthName = months[monthIdx];
+    trendMap[monthName]++;
+  });
+
+  const trends = months.map(m => ({
+    label: m,
+    count: trendMap[m]
+  }));
+
+  return sendResponse(res, 200, true, 'Violation trends retrieved', trends);
 };
