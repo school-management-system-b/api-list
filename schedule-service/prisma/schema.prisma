@@ -1,5 +1,6 @@
 generator client {
   provider      = "prisma-client-js"
+  output        = "../node_modules/@prisma/client"
   binaryTargets = ["native", "linux-musl-openssl-3.0.x", "rhel-openssl-3.0.x"]
 }
 
@@ -19,16 +20,16 @@ model Subject {
   createdBy     String     @default("SYSTEM")
   updatedBy     String?
   deletedAt     DateTime?
-
+ 
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   
   schedules     Schedule[]
-
+ 
   @@map("subjects")
 }
-
-model Schedule {
+ 
+ model Schedule {
   id            String     @id @default(uuid())
   classId       String     // Reference to class in student-service
   className     String?
@@ -52,13 +53,13 @@ model Schedule {
   
   subject       Subject    @relation(fields: [subjectId], references: [id])
   attendances   LessonAttendance[]
-
+ 
   @@index([classId])
   @@index([day])
   @@map("schedules")
 }
-
-model LessonAttendance {
+ 
+ model LessonAttendance {
   id            String     @id @default(uuid())
   scheduleId    String
   studentId     String
@@ -75,12 +76,12 @@ model LessonAttendance {
   updatedAt     DateTime   @updatedAt
   
   schedule      Schedule   @relation(fields: [scheduleId], references: [id])
-
+ 
   @@unique([scheduleId, studentId, date])
   @@map("lesson_attendances")
 }
-
-enum DayOfWeek {
+ 
+ enum DayOfWeek {
   MONDAY
   TUESDAY
   WEDNESDAY
@@ -89,8 +90,8 @@ enum DayOfWeek {
   SATURDAY
   SUNDAY
 }
-
-enum PresenceStatus {
+ 
+ enum PresenceStatus {
   PRESENT
   LATE
   ABSENT

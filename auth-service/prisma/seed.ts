@@ -1,157 +1,80 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../src/generated/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Auth-service seed started...');
+  const password = await bcrypt.hash('password123', 10);
 
-  const PASSWORD = await bcrypt.hash('password123', 12);
-
-  // ─── 1. ROLES ───────────────────────────────────────────────────────────────
+  // 1. Roles
   const roles = [
-    { code: 'SUPERADMIN', name: 'Super Administrator', description: 'Full access to all modules', level: 100, isSystem: true },
-    { code: 'BK',         name: 'Guru BK',             description: 'Bimbingan Konseling',         level: 70  },
-    { code: 'WALIKELAS',  name: 'Wali Kelas',           description: 'Wali Kelas Siswa',            level: 60  },
-    { code: 'GURUMAPEL',  name: 'Guru Mata Pelajaran',  description: 'Guru Mata Pelajaran',         level: 50  },
-    { code: 'ORANGTUA',   name: 'Orang Tua / Wali',     description: 'Orang Tua atau Wali Siswa',   level: 20  },
-    { code: 'SISWA',      name: 'Siswa',                description: 'Siswa Sekolah',               level: 10  },
+    { code: 'SUPERADMIN', name: 'Super Administrator', level: 99, isSystem: true },
+    { code: 'ADMIN', name: 'Administrator Sekolah', level: 90, isSystem: true },
+    { code: 'BK', name: 'Guru Bimbingan Konseling', level: 80, isSystem: true },
+    { code: 'WALIKELAS', name: 'Wali Kelas', level: 70, isSystem: true },
+    { code: 'GURUMAPEL', name: 'Guru Mata Pelajaran', level: 60, isSystem: true },
+    { code: 'ORANGTUA', name: 'Orang Tua', level: 10, isSystem: true },
+    { code: 'SISWA', name: 'Siswa', level: 1, isSystem: true },
   ];
 
+  console.log('Upserting roles...');
   const roleMap: Record<string, string> = {};
   for (const r of roles) {
     const role = await prisma.role.upsert({
-      where:  { code: r.code },
-      update: { name: r.name, description: r.description, level: r.level },
-      create: { ...r, isSystem: r.isSystem ?? false },
+      where: { code: r.code },
+      update: { name: r.name, level: r.level },
+      create: r,
     });
     roleMap[r.code] = role.id;
   }
-  console.log('✅ Roles created');
 
-  // ─── 2. MODULES ─────────────────────────────────────────────────────────────
-  const modules = [
-    { code: 'DASHBOARD',    name: 'Dashboard',            icon: 'LayoutDashboard', path: '/dashboard',          order: 1  },
-    { code: 'USERS',        name: 'Manajemen User',        icon: 'Users',           path: '/dashboard/users',    order: 2  },
-    { code: 'SISWA',        name: 'Data Siswa',            icon: 'GraduationCap',   path: '/dashboard/siswa',    order: 3  },
-    { code: 'PELANGGARAN',  name: 'Data Pelanggaran',      icon: 'AlertTriangle',   path: '/dashboard/pelanggaran', order: 4 },
-    { code: 'PRESTASI',     name: 'Data Prestasi',         icon: 'Trophy',          path: '/dashboard/prestasi', order: 5  },
-    { code: 'KATEGORI',     name: 'Kategori',              icon: 'Tag',             path: '/dashboard/kategori', order: 6  },
-    { code: 'KELAS',        name: 'Data Kelas',            icon: 'School',          path: '/dashboard/kelas',    order: 7  },
-    { code: 'MAPEL',        name: 'Mata Pelajaran',        icon: 'BookOpen',        path: '/dashboard/mapel',    order: 8  },
-    { code: 'LAPORAN',      name: 'Laporan',               icon: 'FileText',        path: '/dashboard/laporan',  order: 9  },
-    { code: 'KONSELING',    name: 'Konseling',             icon: 'HeartHandshake',  path: '/dashboard/konseling',order: 10 },
-    { code: 'RANKING',      name: 'Ranking',               icon: 'Medal',           path: '/dashboard/ranking',  order: 11 },
-    { code: 'NOTIFIKASI',   name: 'Notifikasi',            icon: 'Bell',            path: '/dashboard/notifikasi',order: 12},
-    { code: 'PENGATURAN',   name: 'Pengaturan',            icon: 'Settings',        path: '/dashboard/pengaturan',order: 13},
+  // 2. Users
+  const users = [
+    { id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', username: 'superadmin', email: 'superadmin@example.com', name: 'Super Admin', roles: ['SUPERADMIN'] },
+    { id: 'b1fdeca0-0d1c-5f09-cc7e-7cc0ce491b22', username: 'admin', email: 'admin@school.com', name: 'Admin Sekolah', roles: ['ADMIN'] },
+    { id: 'c2daeb1b-1e2d-6e1a-dd8f-8dd1df5a2c33', username: 'guru_bk', email: 'bk@school.com', name: 'Guru BK (Pak Budi)', roles: ['BK'] },
+    { id: 'd3c6a69e-532f-6d9a-a612-e33fef2ffec0', username: 'wali_kelas', email: 'walikelas@school.com', name: 'Wali Kelas (Bu Ani)', roles: ['WALIKELAS'] },
+    { id: '94d7b70f-6430-7eab-b723-f440f0300fd1', username: 'guru_mapel', email: 'guru@school.com', name: 'Guru Mapel (Pak Joko)', roles: ['GURUMAPEL'] },
+    { id: 'e2d5c58d-421e-5c89-9501-d22fdf1fedd9', username: 'ortu_udin', email: 'ortu.udin@example.com', name: 'Orang Tua Udin', roles: ['ORANGTUA'] },
+    { id: 'f1c4b47c-310d-4b78-8490-c11fdc0edcd8', username: 'siswa_udin', email: 'udin@student.com', name: 'Udin Sedunia', roles: ['SISWA'] },
   ];
 
-  const moduleMap: Record<string, string> = {};
-  for (const m of modules) {
-    const mod = await prisma.module.upsert({
-      where:  { code: m.code },
-      update: { name: m.name, icon: m.icon, path: m.path, order: m.order },
-      create: { ...m },
+  console.log('Seeding users...');
+  for (const u of users) {
+    const user = await prisma.user.upsert({
+      where: { username: u.username },
+      update: { name: u.name, isActive: true },
+      create: {
+        id: u.id,
+        username: u.username,
+        email: u.email,
+        name: u.name,
+        password,
+        isActive: true,
+        isEmailVerified: true,
+        mustChangePassword: false,
+      },
     });
-    moduleMap[m.code] = mod.id;
-  }
-  console.log('✅ Modules created');
 
-  // ─── 3. MODULE ACCESS PER ROLE ───────────────────────────────────────────────
-  const accessConfig: Record<string, string[]> = {
-    SUPERADMIN: Object.keys(moduleMap),
-    BK:         ['DASHBOARD', 'SISWA', 'PELANGGARAN', 'PRESTASI', 'KATEGORI', 'KELAS', 'LAPORAN', 'KONSELING', 'RANKING', 'NOTIFIKASI', 'PENGATURAN'],
-    WALIKELAS:  ['DASHBOARD', 'SISWA', 'PELANGGARAN', 'PRESTASI', 'LAPORAN', 'RANKING', 'NOTIFIKASI', 'PENGATURAN'],
-    GURUMAPEL:  ['DASHBOARD', 'SISWA', 'PELANGGARAN', 'PRESTASI', 'RANKING', 'NOTIFIKASI', 'PENGATURAN'],
-    ORANGTUA:   ['DASHBOARD', 'NOTIFIKASI', 'PENGATURAN'],
-    SISWA:      ['DASHBOARD', 'NOTIFIKASI', 'PENGATURAN'],
-  };
-
-  for (const [roleCode, moduleCodes] of Object.entries(accessConfig)) {
-    const roleId = roleMap[roleCode];
-    if (!roleId) continue;
-    for (const moduleCode of moduleCodes) {
-      const moduleId = moduleMap[moduleCode];
-      if (!moduleId) continue;
-      const isSuperadmin = roleCode === 'SUPERADMIN';
-      const canInput = ['SUPERADMIN', 'BK', 'WALIKELAS', 'GURUMAPEL'].includes(roleCode);
-      await prisma.moduleAccess.upsert({
-        where: { roleId_moduleId: { roleId, moduleId } },
+    // Assign Roles
+    for (const roleCode of u.roles) {
+      await prisma.userRole.upsert({
+        where: {
+          userId_roleId: {
+            userId: user.id,
+            roleId: roleMap[roleCode],
+          },
+        },
         update: {},
         create: {
-          roleId, moduleId,
-          canView:     true,
-          canCreate:   canInput,
-          canUpdate:   canInput,
-          canDelete:   isSuperadmin,
-          canViewAll:  ['SUPERADMIN', 'BK'].includes(roleCode),
-          canDownload: ['SUPERADMIN', 'BK', 'WALIKELAS'].includes(roleCode),
-          canApprove:  ['SUPERADMIN', 'BK'].includes(roleCode),
+          userId: user.id,
+          roleId: roleMap[roleCode],
         },
       });
     }
   }
-  console.log('✅ Module access configured');
 
-  // ─── 4. USERS ────────────────────────────────────────────────────────────────
-  const users = [
-    // SUPERADMIN
-    { username: 'admin',       email: 'admin@sman1berbek.sch.id',         name: 'Administrator Sistem',   roleCode: 'SUPERADMIN' },
-    // BK
-    { username: 'bk.sari',     email: 'bk.sari@sman1berbek.sch.id',       name: 'Sri Sari Dewi, S.Pd',    roleCode: 'BK'         },
-    // WALIKELAS
-    { username: 'wk.budi',     email: 'wk.budi@sman1berbek.sch.id',       name: 'Budi Santoso, S.Pd',     roleCode: 'WALIKELAS'  },
-    { username: 'wk.ani',      email: 'wk.ani@sman1berbek.sch.id',        name: 'Ani Rahayu, S.Pd',       roleCode: 'WALIKELAS'  },
-    { username: 'wk.rudi',     email: 'wk.rudi@sman1berbek.sch.id',       name: 'Rudi Hartono, S.Pd',     roleCode: 'WALIKELAS'  },
-    // GURUMAPEL
-    { username: 'guru.mat',    email: 'guru.matematika@sman1berbek.sch.id',name: 'Drs. Ahmad Fauzi',       roleCode: 'GURUMAPEL'  },
-    { username: 'guru.bio',    email: 'guru.biologi@sman1berbek.sch.id',   name: 'Dra. Siti Nurhaliza',    roleCode: 'GURUMAPEL'  },
-    { username: 'guru.fis',    email: 'guru.fisika@sman1berbek.sch.id',    name: 'Drs. Wahyu Prasetyo',    roleCode: 'GURUMAPEL'  },
-    // ORANGTUA
-    { username: 'ortu.ali',    email: 'ali.bapak@gmail.com',              name: 'Ali Mahmud',             roleCode: 'ORANGTUA'   },
-    { username: 'ortu.siti',   email: 'siti.ibu@gmail.com',               name: 'Siti Aisyah',            roleCode: 'ORANGTUA'   },
-    { username: 'ortu.hasan',  email: 'hasan.wali@gmail.com',             name: 'Hasan Basri',            roleCode: 'ORANGTUA'   },
-    // SISWA
-    { username: 'siswa.andi',  email: 'andi.siswa@sman1berbek.sch.id',    name: 'Andi Pratama',           roleCode: 'SISWA'      },
-    { username: 'siswa.rina',  email: 'rina.siswa@sman1berbek.sch.id',    name: 'Rina Wulandari',         roleCode: 'SISWA'      },
-    { username: 'siswa.fajar', email: 'fajar.siswa@sman1berbek.sch.id',   name: 'Fajar Nugroho',          roleCode: 'SISWA'      },
-  ];
-
-  const userIds: Record<string, string> = {};
-  for (const u of users) {
-    const user = await prisma.user.upsert({
-      where: { username: u.username },
-      update: {},
-      create: {
-        username:          u.username,
-        email:             u.email,
-        password:          PASSWORD,
-        name:              u.name,
-        isEmailVerified:   true,
-        mustChangePassword: false,
-        isActive:          true,
-      },
-    });
-    userIds[u.username] = user.id;
-
-    const roleId = roleMap[u.roleCode];
-    if (roleId) {
-      await prisma.userRole.upsert({
-        where: { userId_roleId: { userId: user.id, roleId } },
-        update: {},
-        create: { userId: user.id, roleId },
-      });
-    }
-  }
-  console.log('✅ Users created');
-  console.log('');
-  console.log('🔑 Login Credentials (password: password123)');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  for (const u of users) {
-    console.log(`   [${u.roleCode.padEnd(10)}] username: ${u.username.padEnd(15)} | email: ${u.email}`);
-  }
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('✅ Auth-service seed completed!');
+  console.log('Seeding completed successfully!');
 }
 
 main()

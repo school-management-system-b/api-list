@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@microservices/common": "file:../common",
-    "@prisma/client": "5.22.0",
+    "@prisma/client": "^5.22.0",
     "@types/jsonwebtoken": "^9.0.10",
     "amqplib": "^0.10.3",
     "axios": "^1.6.5",

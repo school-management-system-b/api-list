@@ -1,5 +1,6 @@
 generator client {
   provider      = "prisma-client-js"
+  output        = "../src/generated/client"
   binaryTargets = ["native", "linux-musl-openssl-3.0.x", "rhel-openssl-3.0.x"]
 }
 
@@ -90,7 +91,7 @@ model Achievement {
   createdBy             String
   createdAt             DateTime            @default(now())
   updatedBy         String?
-  updatedAt             DateTime            @updatedAt
+  updatedAt         DateTime            @updatedAt
   deletedAt             DateTime?
   deletedBy             String?
   
