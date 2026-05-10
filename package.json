@@ -5,7 +5,8 @@
     "dev:all": "concurrently -n \"GATEWAY,AUTH,USER,STUDENT,VIOLATION,ACHIEV,CAT,REPORT,COUNSEL,SCHED\" -c \"bgBlue,bgGreen,bgYellow,bgMagenta,bgCyan,bgWhite,bgRed,bgGreen,bgYellow,bgMagenta\" \"npm run dev -w api-gateway\" \"npm run dev -w auth-service\" \"npm run dev -w user-service\" \"npm run dev -w student-service\" \"npm run dev -w violation-service\" \"npm run dev -w achievement-service\" \"npm run dev -w category-service\" \"npm run dev -w reporting-service\" \"npm run dev -w counseling-service\" \"npm run dev -w schedule-service\"",
     "install:all": "npm install && npm run prisma:generate --workspaces --if-present",
     "prisma:generate:all": "npm run prisma:generate --workspaces --if-present",
-    "prisma:migrate:all": "npm run prisma:deploy --workspaces --if-present"
+    "prisma:migrate:all": "npm run prisma:deploy --workspaces --if-present",
+    "prisma:seed:all": "npm run prisma:seed -w auth-service && npm run prisma:seed -w user-service && npm run prisma:seed -w student-service && npm run prisma:seed -w category-service && npm run prisma:seed -w violation-service && npm run prisma:seed -w achievement-service && npm run prisma:seed -w reporting-service && npm run prisma:seed -w counseling-service && npm run prisma:seed -w schedule-service"
   },
   "workspaces": [
     "auth-service",
