@@ -10,14 +10,19 @@ export class UserService {
     let { username, email, name, roleCode, nip_nis, phone, mapel } = data;
 
     // Auto-mapping for role codes (handle underscore vs non-underscore mismatches)
-    const roleMapping: Record<string, string> = {
-      'GURU_MAPEL': 'GURUMAPEL',
-      'WALI_KELAS': 'WALIKELAS',
-      'GURU_BK': 'BK',
-      'ORANG_TUA': 'ORANGTUA'
-    };
-    if (roleMapping[roleCode]) {
-      roleCode = roleMapping[roleCode];
+    if (roleCode) {
+      const normalizedCode = roleCode.trim().toUpperCase();
+      const roleMapping: Record<string, string> = {
+        'GURU_MAPEL': 'GURUMAPEL',
+        'WALI_KELAS': 'WALIKELAS',
+        'GURU_BK': 'BK',
+        'ORANG_TUA': 'ORANGTUA',
+        'GURUMAPEL': 'GURUMAPEL',
+        'WALIKELAS': 'WALIKELAS',
+        'ORANGTUA': 'ORANGTUA',
+        'BK': 'BK'
+      };
+      roleCode = roleMapping[normalizedCode] || normalizedCode;
     }
 
     // 1. Generate temporary password (Secure)
