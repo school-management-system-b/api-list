@@ -103,14 +103,27 @@ export class UserService {
 
   async bulkCreateUsers(users: any[], createdBy: string) {
     const results = [];
+    logger.info(`Starting bulk creation for ${users.length} users`);
+    
     for (const userData of users) {
       try {
         const result = await this.createUser(userData, createdBy);
         results.push({ success: true, ...result });
       } catch (error: any) {
-        results.push({ success: false, username: userData.username, message: error.message });
+        const errorMsg = error.message || 'Unknown error';
+        logger.error(`Failed to create user ${userData.email || userData.username} in bulk: ${errorMsg}`);
+        results.push({ 
+          success: false, 
+          username: userData.username, 
+          email: userData.email,
+          message: errorMsg 
+        });
       }
     }
+    
+    const successCount = results.filter(r => r.success).length;
+    logger.info(`Bulk creation completed: ${successCount} success, ${results.length - successCount} failed`);
+    
     return results;
   }
 
