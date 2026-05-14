@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import axios from 'axios';
+import { URLSearchParams } from 'url';
 import prisma from '../config/prisma';
 import { sendResponse, sendError } from '../utils/response';
 
@@ -48,7 +49,7 @@ export const getDashboardSummary = async (req: Request, res: Response) => {
     const headers = getContextHeaders(req);
     
     // Fetch data in parallel from other services
-    const [violationsRes, achievementsRes, studentsRes, violationStatsRes, classesRes] = await Promise.allSettled([
+    const results = await Promise.allSettled([
       axios.get(`${VIOLATION_SERVICE_URL}/api/v1/violations${queryString}${queryString ? '&' : '?'}limit=1`, { headers, timeout: 5000 }),
       axios.get(`${ACHIEVEMENT_SERVICE_URL}/api/v1/achievements/stats/summary${queryString}`, { headers, timeout: 5000 }),
       axios.get(`${STUDENT_SERVICE_URL}/api/v1/students${queryString}${queryString ? '&' : '?'}limit=1`, { headers, timeout: 5000 }),
@@ -56,10 +57,23 @@ export const getDashboardSummary = async (req: Request, res: Response) => {
       axios.get(`${STUDENT_SERVICE_URL}/api/v1/classes`, { headers, timeout: 5000 }),
     ]);
 
-    const totalViolations =
-      violationsRes.status === 'fulfilled'
-        ? violationsRes.value.data?.data?.pagination?.total ?? 0
-        : 0;
+    const [violationsRes, achievementsRes, studentsRes, violationStatsRes, classesRes] = results;
+
+    // Log failures for debugging
+    results.forEach((res, idx) => {
+      if (res.status === 'rejected') {
+        const serviceNames = ['Violations List', 'Achievement Stats', 'Students List', 'Violation Stats', 'Classes List'];
+        console.error(`[Dashboard] Service Call Failed (${serviceNames[idx]}):`, res.reason?.message || res.reason);
+      }
+    });
+
+    // Extract totals with better fallbacks
+    let totalViolations = 0;
+    if (violationStatsRes.status === 'fulfilled') {
+      totalViolations = violationStatsRes.value.data?.data?.total ?? 0;
+    } else if (violationsRes.status === 'fulfilled') {
+      totalViolations = violationsRes.value.data?.data?.pagination?.total ?? 0;
+    }
 
     const totalAchievements =
       achievementsRes.status === 'fulfilled'
@@ -85,7 +99,7 @@ export const getDashboardSummary = async (req: Request, res: Response) => {
 
       // Sum students by level
       classes.forEach((c: any) => {
-        const level = c.level || c.name?.split(' ')[0];
+        const level = c.level || (c.name && c.name.split(' ')[0]);
         if (level && levelMap[level]) {
           levelMap[level].studentCount += c.currentTotal || 0;
         }
