@@ -6,7 +6,7 @@ This guide covers testing across all 11 microservices in the project. Each servi
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Starts
 
 ### Run Tests for Single Service
 
