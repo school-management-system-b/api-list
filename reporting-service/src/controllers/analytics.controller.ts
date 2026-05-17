@@ -50,11 +50,11 @@ export const getDashboardSummary = async (req: Request, res: Response) => {
     
     // Fetch data in parallel from other services
     const results = await Promise.allSettled([
-      axios.get(`${VIOLATION_SERVICE_URL}/api/v1/violations${queryString}${queryString ? '&' : '?'}limit=1`, { headers, timeout: 5000 }),
-      axios.get(`${ACHIEVEMENT_SERVICE_URL}/api/v1/achievements/stats/summary${queryString}`, { headers, timeout: 5000 }),
-      axios.get(`${STUDENT_SERVICE_URL}/api/v1/students${queryString}${queryString ? '&' : '?'}limit=1`, { headers, timeout: 5000 }),
-      axios.get(`${VIOLATION_SERVICE_URL}/api/v1/violations/stats/summary${queryString}`, { headers, timeout: 5000 }),
-      axios.get(`${STUDENT_SERVICE_URL}/api/v1/classes`, { headers, timeout: 5000 }),
+      axios.get(`${VIOLATION_SERVICE_URL}/api/v1/violations${queryString}${queryString ? '&' : '?'}limit=1`, { headers, timeout: 10000 }),
+      axios.get(`${ACHIEVEMENT_SERVICE_URL}/api/v1/achievements/stats/summary${queryString}`, { headers, timeout: 10000 }),
+      axios.get(`${STUDENT_SERVICE_URL}/api/v1/students${queryString}${queryString ? '&' : '?'}limit=1`, { headers, timeout: 10000 }),
+      axios.get(`${VIOLATION_SERVICE_URL}/api/v1/violations/stats/summary${queryString}`, { headers, timeout: 10000 }),
+      axios.get(`${STUDENT_SERVICE_URL}/api/v1/classes`, { headers, timeout: 10000 }),
     ]);
 
     const [violationsRes, achievementsRes, studentsRes, violationStatsRes, classesRes] = results;
@@ -373,7 +373,7 @@ export const getStudentPointsReport = async (req: Request, res: Response) => {
     if (startDate) filterParams.append('startDate', startDate as string);
     if (endDate) filterParams.append('endDate', endDate as string);
     filterParams.append('limit', '5000');
-    filterParams.append('status', 'APPROVED_WALI');
+    // Include all approved violations (APPROVED_WALI and APPROVED_BK)
 
     let violationsRes, achievementsRes;
     try {
