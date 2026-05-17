@@ -31,7 +31,7 @@ app.use(cookieParser());
 // Strict limiter for auth endpoints (login, register)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many auth attempts, please try again in 15 minutes' },
