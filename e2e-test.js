@@ -46,9 +46,9 @@ const USERS = {
 const tokenCache = {};
 const TOKEN_TTL_MS = 7 * 60 * 1000; // 7 min — JWT expires at 15min, safe margin
 
-// Force expire all cached tokens — next tok() call will re-login
+// Force delete all cached tokens — next tok() call will re-login
 function clearCache() {
-  Object.keys(tokenCache).forEach(k => { tokenCache[k].time = 0; });
+  Object.keys(tokenCache).forEach(k => delete tokenCache[k]);
 }
 
 async function tok(username) {
@@ -60,12 +60,20 @@ async function tok(username) {
   for (let attempt = 0; attempt < 3; attempt++) {
     const r = await req('POST', '/auth/login', { username, password: 'password123' });
     if (r.status === 429) {
-      process.stdout.write(`    [rate-limit] waiting 10s before retry for ${username}...\n`);
-      await new Promise(resolve => setTimeout(resolve, 10000));
+      process.stdout.write(`    [rate-limit] waiting 15s before retry for ${username}...\n`);
+      await new Promise(resolve => setTimeout(resolve, 15000));
       continue;
     }
-    const token = r.data?.data?.tokens?.accessToken || null;
-    if (token) tokenCache[username] = { token, time: now };
+    let token = r.data?.data?.tokens?.accessToken || null;
+    if (!token) return null;
+
+    // Hit /auth/authorize to get isAuthorized=true token (required for protected endpoints)
+    const authR = await req('GET', '/auth/authorize', null, token);
+    if (authR.status === 200 && authR.data?.data?.accessToken) {
+      token = authR.data.data.accessToken;
+    }
+
+    tokenCache[username] = { token, time: now };
     return token;
   }
   return null;
